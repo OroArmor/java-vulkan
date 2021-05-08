@@ -1,0 +1,261 @@
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "org.kohsuke:github-api:1.114"
+    }
+}
+
+plugins {
+    id "java-library"
+    id 'maven-publish'
+    id 'org.cadixdev.licenser' version '0.5.0'
+    id "signing"
+    id "maven"
+}
+
+archivesBaseName = project.archives_base_name
+version = project.version
+group = project.maven_group
+
+
+import org.gradle.internal.os.OperatingSystem
+
+project.ext.lwjglVersion = "3.2.3"
+project.ext.jomlVersion = "1.10.0"
+
+switch (OperatingSystem.current()) {
+    case OperatingSystem.LINUX:
+        def osArch = System.getProperty("os.arch")
+        project.ext.lwjglNatives = osArch.startsWith("arm") || osArch.startsWith("aarch64")
+                ? "natives-linux-${osArch.contains("64") || osArch.startsWith("armv8") ? "arm64" : "arm32"}"
+                : "natives-linux"
+        break
+    case OperatingSystem.MAC_OS:
+        project.ext.lwjglNatives = "natives-macos"
+        break
+    case OperatingSystem.WINDOWS:
+        project.ext.lwjglNatives = System.getProperty("os.arch").contains("64") ? "natives-windows" : "natives-windows-x86"
+        break
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api "org.lwjgl:lwjgl:$lwjglVersion"
+    api "org.lwjgl:lwjgl-assimp:$lwjglVersion"
+    api "org.lwjgl:lwjgl-bgfx:$lwjglVersion"
+    api "org.lwjgl:lwjgl-cuda:$lwjglVersion"
+    api "org.lwjgl:lwjgl-egl:$lwjglVersion"
+    api "org.lwjgl:lwjgl-glfw:$lwjglVersion"
+    api "org.lwjgl:lwjgl-jawt:$lwjglVersion"
+    api "org.lwjgl:lwjgl-jemalloc:$lwjglVersion"
+    api "org.lwjgl:lwjgl-libdivide:$lwjglVersion"
+    api "org.lwjgl:lwjgl-llvm:$lwjglVersion"
+    api "org.lwjgl:lwjgl-lmdb:$lwjglVersion"
+    api "org.lwjgl:lwjgl-lz4:$lwjglVersion"
+    api "org.lwjgl:lwjgl-meow:$lwjglVersion"
+    api "org.lwjgl:lwjgl-nanovg:$lwjglVersion"
+    api "org.lwjgl:lwjgl-nfd:$lwjglVersion"
+    api "org.lwjgl:lwjgl-nuklear:$lwjglVersion"
+    api "org.lwjgl:lwjgl-odbc:$lwjglVersion"
+    api "org.lwjgl:lwjgl-openal:$lwjglVersion"
+    api "org.lwjgl:lwjgl-opencl:$lwjglVersion"
+    api "org.lwjgl:lwjgl-opengl:$lwjglVersion"
+    api "org.lwjgl:lwjgl-opengles:$lwjglVersion"
+    api "org.lwjgl:lwjgl-openvr:$lwjglVersion"
+    api "org.lwjgl:lwjgl-opus:$lwjglVersion"
+    api "org.lwjgl:lwjgl-ovr:$lwjglVersion"
+    api "org.lwjgl:lwjgl-par:$lwjglVersion"
+    api "org.lwjgl:lwjgl-remotery:$lwjglVersion"
+    api "org.lwjgl:lwjgl-rpmalloc:$lwjglVersion"
+    api "org.lwjgl:lwjgl-shaderc:$lwjglVersion"
+    api "org.lwjgl:lwjgl-sse:$lwjglVersion"
+    api "org.lwjgl:lwjgl-stb:$lwjglVersion"
+    api "org.lwjgl:lwjgl-tinyexr:$lwjglVersion"
+    api "org.lwjgl:lwjgl-tinyfd:$lwjglVersion"
+    api "org.lwjgl:lwjgl-tootle:$lwjglVersion"
+    api "org.lwjgl:lwjgl-vma:$lwjglVersion"
+    api "org.lwjgl:lwjgl-vulkan:$lwjglVersion"
+    api "org.lwjgl:lwjgl-xxhash:$lwjglVersion"
+    api "org.lwjgl:lwjgl-yoga:$lwjglVersion"
+    api "org.lwjgl:lwjgl-zstd:$lwjglVersion"
+    runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-assimp::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-bgfx::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-glfw::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-jemalloc::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-libdivide::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-llvm::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-lmdb::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-lz4::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-meow::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-nanovg::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-nfd::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-nuklear::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-openal::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-opengl::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-opengles::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-openvr::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-opus::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-ovr::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-par::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-remotery::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-rpmalloc::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-shaderc::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-sse::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-stb::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-tinyexr::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-tinyfd::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-tootle::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-vma::$lwjglNatives"
+    if (lwjglNatives == "natives-macos") runtimeOnly "org.lwjgl:lwjgl-vulkan::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-xxhash::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-yoga::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-zstd::$lwjglNatives"
+    api "org.joml:joml:${jomlVersion}"
+}
+
+ext.changelog = ""
+
+tasks.withType(Sign) {
+    onlyIf { project.hasProperty("sign") }
+}
+
+if (project.hasProperty("sign")) {
+    signing {
+        useGpgCmd()
+        sign configurations.archives
+    }
+}
+
+license {
+    header = rootProject.file("LICENSE")
+}
+
+java {
+    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+    // if it is present.
+    // If you remove this line, sources will not be generated.
+    withSourcesJar()
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+}
+
+artifacts {
+    archives jar, sourcesJar, javadocJar
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            def ossrhUsername = "OroArmor"
+            def ossrhPassword = project.hasProperty("ossrhPassword") ? project.property("ossrhPassword") : System.getenv("OSSRH_PASSWORD")
+
+            beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
+            }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+            pom.project {
+                name 'Library for LWJGL'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                description 'A Library for LWJGL programs'
+                url 'http://github.com/OroArmor/LibraryForLWJGL'
+
+                scm {
+                    connection 'scm:git:git://github.com/OroArmor/LibraryForLWJGL.git'
+                    developerConnection 'scm:git:ssh://github.com:OroArmor/LibraryForLWJGL.git'
+                    url 'http://github.com/OroArmor/LibraryForLWJGL'
+
+                }
+
+                licenses {
+                    license {
+                        name 'MIT'
+                        url 'https://mit-license.org/'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'OroArmor'
+                        name 'Eli Orona'
+                        email 'eliorona@live.com'
+                        url "oroarmor.com"
+                    }
+                }
+            }
+        }
+    }
+}
+
+task github {
+    onlyIf {
+        System.getenv().GITHUB_TOKEN
+    }
+
+    doLast {
+        def github = org.kohsuke.github.GitHub.connectUsingOAuth(System.getenv().GITHUB_TOKEN as String)
+        def repository = github.getRepository("OroArmor/LibraryForLWJGL")
+
+        def releaseBuilder = new org.kohsuke.github.GHReleaseBuilder(repository, project.mod_version)
+        releaseBuilder.name("$project.project_name $project.mod_version for $project.minecraft_version")
+        releaseBuilder.body(project.ext.changelog)
+        releaseBuilder.commitish("master")
+
+        def ghRelease = releaseBuilder.create()
+        ghRelease.uploadAsset(file("${project.rootDir}/build/libs/${archivesBaseName}-${version}.jar"), "application/java-archive");
+    }
+}
+
+task generateChangelog {
+    def changelogFile = file("./CHANGELOG.md")
+    def contents = changelogFile.text
+    def changelogs = contents.contains("----") ? contents.split("\\-\\-\\-\\-") : [contents]
+    project.ext.changelog = changelogs.find { log -> log.contains("Version " + project.version + ":") }
+    println project.ext.changelog
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            // add all the jars that should be included when publishing to maven
+            from components.java
+//            artifact(javadocJar) {
+//                builtBy javadocJar
+//                classifier = "javadoc"
+//            }
+//            artifact(sourcesJar) {
+//                builtBy sourcesJar
+//                classifier = "sources"
+//            }
+            artifactId = archives_base_name
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}
