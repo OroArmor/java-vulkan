@@ -248,6 +248,10 @@ public class VulkanGraphicsPipeline {
     public static VkPipelineVertexInputStateCreateInfo createVertexInputInfo(MemoryStack stack) {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = VkPipelineVertexInputStateCreateInfo.callocStack(stack);
         vertexInputInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
+
+        vertexInputInfo.pVertexBindingDescriptions(Vertex.getBindingDescription());
+        vertexInputInfo.pVertexAttributeDescriptions(Vertex.getAttributeDescriptions());
+
         return vertexInputInfo;
     }
 

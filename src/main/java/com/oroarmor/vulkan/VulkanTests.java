@@ -28,6 +28,8 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.Collection;
 
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -57,6 +59,12 @@ public class VulkanTests {
     public static final boolean ENABLE_VALIDATION_LAYERS = DEBUG.get(true);
     private static boolean frameBufferResized = false;
 
+    public static final Vertex[] VERTICES = {
+            new Vertex(new Vector2f(0.0f, -0.5f), new Vector3f(1.0f, 0.0f, 0.0f)),
+            new Vertex(new Vector2f(0.5f, 0.5f), new Vector3f(0.0f, 1.0f, 0.0f)),
+            new Vertex(new Vector2f(-0.5f, 0.5f), new Vector3f(0.0f, 0.0f, 1.0f))
+    };
+
     public static void main(String[] args) {
         initGLFW();
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", MemoryUtil.NULL, MemoryUtil.NULL);
@@ -78,17 +86,18 @@ public class VulkanTests {
         VulkanDevices.pickPhysicalDevice();
         VulkanLogicalDevices.createLogicalDevice();
         VulkanCommandPools.createCommandPool();
+        VulkanVertexBuffers.createVertexBuffer();
         recreateSwapChain();
         VulkanSemaphore.createSemaphore();
     }
 
     private static void recreateSwapChain() {
-        try(MemoryStack stack = MemoryStack.stackPush()) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
 
             IntBuffer width = stack.ints(0);
             IntBuffer height = stack.ints(0);
 
-            while(width.get(0) == 0 && height.get(0) == 0) {
+            while (width.get(0) == 0 && height.get(0) == 0) {
                 glfwGetFramebufferSize(window, width, height);
                 glfwWaitEvents();
             }
@@ -144,6 +153,7 @@ public class VulkanTests {
             vkResetFences(VulkanLogicalDevices.device, VulkanSemaphore.inFlightFences.get(frame));
 
             if (vkQueueSubmit(VulkanLogicalDevices.graphicsQueue, submitInfo, VulkanSemaphore.inFlightFences.get(frame)) != VK_SUCCESS) {
+                vkResetFences(VulkanLogicalDevices.device, VulkanSemaphore.inFlightFences.get(frame));
                 throw new RuntimeException("Failed to submit draw call to command buffer.");
             }
 
@@ -165,6 +175,7 @@ public class VulkanTests {
             } else if (result != VK_SUCCESS) {
                 throw new RuntimeException("Unable to present swap chain image.");
             }
+
 
             vkQueueWaitIdle(VulkanLogicalDevices.presentQueue);
 
@@ -190,6 +201,9 @@ public class VulkanTests {
 
     private static void cleanup() {
         cleanupSwapChain();
+
+        vkDestroyBuffer(VulkanLogicalDevices.device, VulkanVertexBuffers.vertexBuffer, null);
+        vkFreeMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.vertexBufferMemory, null);
 
         VulkanSemaphore.renderFinishedSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
 //        VulkanSemaphore.imageAvailableSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
