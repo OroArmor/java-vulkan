@@ -29,10 +29,7 @@ import java.nio.LongBuffer;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.vulkan.VkBufferCreateInfo;
-import org.lwjgl.vulkan.VkMemoryAllocateInfo;
-import org.lwjgl.vulkan.VkMemoryRequirements;
-import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
+import org.lwjgl.vulkan.*;
 
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -40,48 +37,89 @@ public class VulkanVertexBuffers {
     public static long vertexBuffer;
     public static long vertexBufferMemory;
 
+    public static long indexBuffer;
+    public static long indexBufferMemory;
+
     public static void createVertexBuffer() {
+        int size = Vertex.SIZEOF * VulkanTests.VERTICES.length;
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.callocStack(stack);
+            LongBuffer pBufferMemory = stack.longs(0);
+            LongBuffer pBuffer = stack.longs(0);
 
-            bufferInfo.sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
-            bufferInfo.size(Vertex.SIZEOF * VulkanTests.VERTICES.length);
+            createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, pBuffer, pBufferMemory, stack);
 
-            bufferInfo.usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-            bufferInfo.sharingMode(VK_SHARING_MODE_EXCLUSIVE);
-
-            LongBuffer pVertexBuffer = stack.longs(0);
-
-            if (vkCreateBuffer(VulkanLogicalDevices.device, bufferInfo, null, pVertexBuffer) != VK_SUCCESS) {
-                throw new RuntimeException("Unable to create vertex buffer.");
-            }
-
-            vertexBuffer = pVertexBuffer.get(0);
-
-            VkMemoryRequirements memRequirements = VkMemoryRequirements.callocStack(stack);
-            vkGetBufferMemoryRequirements(VulkanLogicalDevices.device, vertexBuffer, memRequirements);
-
-            VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.callocStack(stack);
-            allocInfo.sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
-            allocInfo.allocationSize(memRequirements.size());
-            allocInfo.memoryTypeIndex(findMemoryType(memRequirements.memoryTypeBits(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stack));
-
-            LongBuffer pVertexBufferMemory = stack.longs(0);
-
-            if (vkAllocateMemory(VulkanLogicalDevices.device, allocInfo, null, pVertexBufferMemory) != VK_SUCCESS) {
-                throw new RuntimeException("Unable to allocate vertex buffer memory.");
-            }
-
-            vertexBufferMemory = pVertexBufferMemory.get(0);
-
-            vkBindBufferMemory(VulkanLogicalDevices.device, vertexBuffer, vertexBufferMemory, 0);
+            long stagingBuffer = pBuffer.get(0);
+            long stagingBufferMemory = pBufferMemory.get(0);
 
             PointerBuffer vertexData = stack.mallocPointer(1);
+            vkMapMemory(VulkanLogicalDevices.device, stagingBufferMemory, 0, size, 0, vertexData);
+            memCopy(vertexData.getByteBuffer(0, size), VulkanTests.VERTICES);
+            vkUnmapMemory(VulkanLogicalDevices.device, stagingBufferMemory);
 
-            vkMapMemory(VulkanLogicalDevices.device, vertexBufferMemory, 0, bufferInfo.size(), 0, vertexData);
-            memCopy(vertexData.getByteBuffer(0, (int) bufferInfo.size()), VulkanTests.VERTICES);
-            vkUnmapMemory(VulkanLogicalDevices.device, vertexBufferMemory);
+            createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, pBuffer, pBufferMemory, stack);
+
+            vertexBuffer = pBuffer.get(0);
+            vertexBufferMemory = pBufferMemory.get(0);
+
+            copyBuffer(stagingBuffer, vertexBuffer, size);
+            vkDestroyBuffer(VulkanLogicalDevices.device, stagingBuffer, null);
+            vkFreeMemory(VulkanLogicalDevices.device, stagingBufferMemory, null);
         }
+    }
+
+    public static void createIndexBuffer() {
+        int size = Integer.BYTES * VulkanTests.INDICES.length;
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            LongBuffer pBufferMemory = stack.longs(0);
+            LongBuffer pBuffer = stack.longs(0);
+
+            createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, pBuffer, pBufferMemory, stack);
+
+            long stagingBuffer = pBuffer.get(0);
+            long stagingBufferMemory = pBufferMemory.get(0);
+
+            PointerBuffer vertexData = stack.mallocPointer(1);
+            vkMapMemory(VulkanLogicalDevices.device, stagingBufferMemory, 0, size, 0, vertexData);
+            memCopy(vertexData.getByteBuffer(0, size), VulkanTests.INDICES);
+            vkUnmapMemory(VulkanLogicalDevices.device, stagingBufferMemory);
+
+            createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, pBuffer, pBufferMemory, stack);
+
+            indexBuffer = pBuffer.get(0);
+            indexBufferMemory = pBufferMemory.get(0);
+
+            copyBuffer(stagingBuffer, indexBuffer, size);
+            vkDestroyBuffer(VulkanLogicalDevices.device, stagingBuffer, null);
+            vkFreeMemory(VulkanLogicalDevices.device, stagingBufferMemory, null);
+        }
+    }
+
+    private static void createBuffer(int size, int usage, int properties, LongBuffer pVertexBuffer, LongBuffer pVertexBufferMemory, MemoryStack stack) {
+        VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.callocStack(stack);
+
+        bufferInfo.sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
+        bufferInfo.size(size);
+
+        bufferInfo.usage(usage);
+        bufferInfo.sharingMode(VK_SHARING_MODE_EXCLUSIVE);
+
+        if (vkCreateBuffer(VulkanLogicalDevices.device, bufferInfo, null, pVertexBuffer) != VK_SUCCESS) {
+            throw new RuntimeException("Unable to create vertex buffer.");
+        }
+
+        VkMemoryRequirements memRequirements = VkMemoryRequirements.callocStack(stack);
+        vkGetBufferMemoryRequirements(VulkanLogicalDevices.device, pVertexBuffer.get(0), memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.callocStack(stack);
+        allocInfo.sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
+        allocInfo.allocationSize(memRequirements.size());
+        allocInfo.memoryTypeIndex(findMemoryType(memRequirements.memoryTypeBits(), properties, stack));
+
+        if (vkAllocateMemory(VulkanLogicalDevices.device, allocInfo, null, pVertexBufferMemory) != VK_SUCCESS) {
+            throw new RuntimeException("Unable to allocate vertex buffer memory.");
+        }
+
+        vkBindBufferMemory(VulkanLogicalDevices.device, pVertexBuffer.get(0), pVertexBufferMemory.get(0), 0);
     }
 
     private static void memCopy(ByteBuffer byteBuffer, Vertex[] vertices) {
@@ -95,7 +133,13 @@ public class VulkanVertexBuffers {
         }
     }
 
-    public static int findMemoryType(int typeFilter, int properties, MemoryStack stack) {
+    private static void memCopy(ByteBuffer byteBuffer, int[] indices) {
+        for (int i : indices) {
+            byteBuffer.putShort((short) i);
+        }
+    }
+
+        public static int findMemoryType(int typeFilter, int properties, MemoryStack stack) {
         VkPhysicalDeviceMemoryProperties memProperties = VkPhysicalDeviceMemoryProperties.callocStack(stack);
         vkGetPhysicalDeviceMemoryProperties(VulkanDevices.physicalDevice, memProperties);
 
@@ -105,5 +149,40 @@ public class VulkanVertexBuffers {
             }
         }
         throw new RuntimeException("Failed to find suitable memory type");
+    }
+
+    public static void copyBuffer(long srcBuffer, long dstBuffer, int size) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.callocStack(stack);
+            allocInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+            allocInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+            allocInfo.commandPool(VulkanCommandPools.commandPool);
+            allocInfo.commandBufferCount(1);
+
+            PointerBuffer pCommandBuffer = stack.callocPointer(1);
+            vkAllocateCommandBuffers(VulkanLogicalDevices.device, allocInfo, pCommandBuffer);
+            VkCommandBuffer buffer = new VkCommandBuffer(pCommandBuffer.get(0), VulkanLogicalDevices.device);
+
+            VkCommandBufferBeginInfo beginInfo = VkCommandBufferBeginInfo.callocStack(stack);
+            beginInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+            beginInfo.flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+            vkBeginCommandBuffer(buffer, beginInfo);
+
+            VkBufferCopy.Buffer copyRegion = VkBufferCopy.callocStack(1, stack);
+            copyRegion.srcOffset(0).dstOffset(0).size(size);
+
+            vkCmdCopyBuffer(buffer, srcBuffer, dstBuffer, copyRegion);
+            vkEndCommandBuffer(buffer);
+
+            VkSubmitInfo submitInfo = VkSubmitInfo.callocStack(stack);
+            submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+            submitInfo.pCommandBuffers(pCommandBuffer);
+
+            vkQueueSubmit(VulkanLogicalDevices.graphicsQueue, submitInfo, VK_NULL_HANDLE);
+            vkQueueWaitIdle(VulkanLogicalDevices.graphicsQueue);
+
+            vkFreeCommandBuffers(VulkanLogicalDevices.device, VulkanCommandPools.commandPool, pCommandBuffer);
+        }
     }
 }

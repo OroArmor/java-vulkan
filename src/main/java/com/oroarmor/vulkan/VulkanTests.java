@@ -60,10 +60,13 @@ public class VulkanTests {
     private static boolean frameBufferResized = false;
 
     public static final Vertex[] VERTICES = {
-            new Vertex(new Vector2f(0f, -0.5f), new Vector3f(1.0f, 0.0f, 0.0f)),
-            new Vertex(new Vector2f(0.5f, 0.5f), new Vector3f(0.0f, 1.0f, 0.0f)),
-            new Vertex(new Vector2f(-0.5f, 0.5f), new Vector3f(0.0f, 0.0f, 1.0f))
+            new Vertex(new Vector2f(-0.5f, -0.5f), new Vector3f(1.0f, 0.0f, 0.0f)),
+            new Vertex(new Vector2f(0.5f, -0.5f), new Vector3f(0.0f, 1.0f, 0.0f)),
+            new Vertex(new Vector2f(0.5f, 0.5f), new Vector3f(0.0f, 0.0f, 1.0f)),
+            new Vertex(new Vector2f(-0.5f, 0.5f), new Vector3f(1.0f, 1.0f, 1.0f))
     };
+
+    public static final int[] INDICES = {0, 1, 2, 2, 3, 0};
 
     public static void main(String[] args) {
         initGLFW();
@@ -87,6 +90,7 @@ public class VulkanTests {
         VulkanLogicalDevices.createLogicalDevice();
         VulkanCommandPools.createCommandPool();
         VulkanVertexBuffers.createVertexBuffer();
+        VulkanVertexBuffers.createIndexBuffer();
         recreateSwapChain();
         VulkanSemaphore.createSemaphore();
     }
@@ -204,6 +208,9 @@ public class VulkanTests {
 
         vkDestroyBuffer(VulkanLogicalDevices.device, VulkanVertexBuffers.vertexBuffer, null);
         vkFreeMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.vertexBufferMemory, null);
+
+        vkDestroyBuffer(VulkanLogicalDevices.device, VulkanVertexBuffers.indexBuffer, null);
+        vkFreeMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.indexBufferMemory, null);
 
         VulkanSemaphore.renderFinishedSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
 //        VulkanSemaphore.imageAvailableSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));

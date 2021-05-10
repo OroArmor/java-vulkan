@@ -104,8 +104,9 @@ public class VulkanCommandPools {
                 vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, VulkanGraphicsPipeline.graphicsPipeline);
 
                 vkCmdBindVertexBuffers(commandBuffer, 0, stack.longs(VulkanVertexBuffers.vertexBuffer), stack.longs(0));
+                vkCmdBindIndexBuffer(commandBuffer, VulkanVertexBuffers.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-                vkCmdDraw(commandBuffer, Vertex.SIZEOF * VulkanTests.VERTICES.length, 1, 0, 0);
+                vkCmdDrawIndexed(commandBuffer, VulkanTests.INDICES.length, 1, 0, 0, 0);
                 vkCmdEndRenderPass(commandBuffer);
 
                 if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
