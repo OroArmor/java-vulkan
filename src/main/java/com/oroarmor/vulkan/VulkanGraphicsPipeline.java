@@ -41,10 +41,10 @@ public class VulkanGraphicsPipeline {
 
     public static void createRenderPass() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VkAttachmentDescription.Buffer colorAttachment = createColorAttachment();
-            VkAttachmentReference.Buffer colorAttachmentRef = createColorAttachmentRef();
+            VkAttachmentDescription.Buffer colorAttachment = createColorAttachment(stack);
+            VkAttachmentReference.Buffer colorAttachmentRef = createColorAttachmentRef(stack);
 
-            VkSubpassDescription.Buffer subpass = createSubpass(colorAttachmentRef);
+            VkSubpassDescription.Buffer subpass = createSubpass(colorAttachmentRef, stack);
 
             VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.callocStack(stack);
             renderPassInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
@@ -54,7 +54,7 @@ public class VulkanGraphicsPipeline {
             VkSubpassDependency.Buffer dependency = getSubpassDependency(stack);
             renderPassInfo.pDependencies(dependency);
 
-            LongBuffer pRenderPass = stack.longs(0);
+            LongBuffer pRenderPass = stack.mallocLong(1);
 
             if (vkCreateRenderPass(VulkanLogicalDevices.device, renderPassInfo, null, pRenderPass) != VK_SUCCESS) {
                 throw new RuntimeException("failed to create render pass!");
@@ -75,23 +75,23 @@ public class VulkanGraphicsPipeline {
         return dependency;
     }
 
-    public static VkSubpassDescription.Buffer createSubpass(VkAttachmentReference.Buffer colorAttachmentRef) {
-        VkSubpassDescription.Buffer subpass = VkSubpassDescription.create(1);
+    public static VkSubpassDescription.Buffer createSubpass(VkAttachmentReference.Buffer colorAttachmentRef, MemoryStack stack) {
+        VkSubpassDescription.Buffer subpass = VkSubpassDescription.callocStack(1, stack);
         subpass.pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
         subpass.colorAttachmentCount(1);
         subpass.pColorAttachments(colorAttachmentRef);
         return subpass;
     }
 
-    public static VkAttachmentReference.Buffer createColorAttachmentRef() {
-        VkAttachmentReference.Buffer colorAttachmentRef = VkAttachmentReference.create(1);
+    public static VkAttachmentReference.Buffer createColorAttachmentRef(MemoryStack stack) {
+        VkAttachmentReference.Buffer colorAttachmentRef = VkAttachmentReference.callocStack(1, stack);
         colorAttachmentRef.attachment(0);
         colorAttachmentRef.layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         return colorAttachmentRef;
     }
 
-    public static VkAttachmentDescription.Buffer createColorAttachment() {
-        VkAttachmentDescription.Buffer colorAttachment = VkAttachmentDescription.create(1);
+    public static VkAttachmentDescription.Buffer createColorAttachment(MemoryStack stack) {
+        VkAttachmentDescription.Buffer colorAttachment = VkAttachmentDescription.callocStack(1, stack);
         colorAttachment.format(VulkanSwapChains.swapChainImageFormat);
         colorAttachment.samples(VK_SAMPLE_COUNT_1_BIT);
         colorAttachment.loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
@@ -106,8 +106,8 @@ public class VulkanGraphicsPipeline {
     public static void createGraphicsPipeline() {
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            ShaderUtils.SPIRV vertexShaderCode = ShaderUtils.loadShaderFromResource("com/oroarmor/app/vulkan/vulkan_shader.vert", ShaderUtils.ShaderType.VERTEX_SHADER);
-            ShaderUtils.SPIRV fragmentShaderCode = ShaderUtils.loadShaderFromResource("com/oroarmor/app/vulkan/vulkan_shader.frag", ShaderUtils.ShaderType.FRAGMENT_SHADER);
+            ShaderUtils.SPIRV vertexShaderCode = ShaderUtils.compileShaderFile("com/oroarmor/app/vulkan/vulkan_shader.vert", ShaderUtils.ShaderType.VERTEX_SHADER);
+            ShaderUtils.SPIRV fragmentShaderCode = ShaderUtils.compileShaderFile("com/oroarmor/app/vulkan/vulkan_shader.frag", ShaderUtils.ShaderType.FRAGMENT_SHADER);
 
             long vertexModule = createShaderModule(vertexShaderCode.bytecode());
             long fragmentModule = createShaderModule(fragmentShaderCode.bytecode());
@@ -140,23 +140,7 @@ public class VulkanGraphicsPipeline {
             pipelineLayout = pLayoutInfo.get(0);
 
 
-            VkGraphicsPipelineCreateInfo.Buffer pipelineInfo = VkGraphicsPipelineCreateInfo.callocStack(1, stack);
-
-            pipelineInfo.sType(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
-            pipelineInfo.pStages(shaderStages);
-
-            pipelineInfo.pVertexInputState(vertexInputInfo);
-            pipelineInfo.pInputAssemblyState(inputAssembly);
-            pipelineInfo.pViewportState(viewportState);
-            pipelineInfo.pRasterizationState(rasterizer);
-            pipelineInfo.pMultisampleState(multisampling);
-            pipelineInfo.pColorBlendState(colorBlending);
-
-            pipelineInfo.layout(pipelineLayout);
-            pipelineInfo.renderPass(renderPass);
-            pipelineInfo.subpass(0);
-            pipelineInfo.basePipelineHandle(VK_NULL_HANDLE);
-            pipelineInfo.basePipelineIndex(-1);
+            VkGraphicsPipelineCreateInfo.Buffer pipelineInfo = createGraphicsPipelineInfo(stack, shaderStages, vertexInputInfo, inputAssembly, viewportState, rasterizer, multisampling, colorBlending);
 
             LongBuffer pGraphicsPipeline = stack.mallocLong(1);
 
@@ -172,6 +156,27 @@ public class VulkanGraphicsPipeline {
             vertexShaderCode.free();
             fragmentShaderCode.free();
         }
+    }
+
+    private static VkGraphicsPipelineCreateInfo.Buffer createGraphicsPipelineInfo(MemoryStack stack, VkPipelineShaderStageCreateInfo.Buffer shaderStages, VkPipelineVertexInputStateCreateInfo vertexInputInfo, VkPipelineInputAssemblyStateCreateInfo inputAssembly, VkPipelineViewportStateCreateInfo viewportState, VkPipelineRasterizationStateCreateInfo rasterizer, VkPipelineMultisampleStateCreateInfo multisampling, VkPipelineColorBlendStateCreateInfo colorBlending) {
+        VkGraphicsPipelineCreateInfo.Buffer pipelineInfo = VkGraphicsPipelineCreateInfo.callocStack(1, stack);
+
+        pipelineInfo.sType(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
+        pipelineInfo.pStages(shaderStages);
+
+        pipelineInfo.pVertexInputState(vertexInputInfo);
+        pipelineInfo.pInputAssemblyState(inputAssembly);
+        pipelineInfo.pViewportState(viewportState);
+        pipelineInfo.pRasterizationState(rasterizer);
+        pipelineInfo.pMultisampleState(multisampling);
+        pipelineInfo.pColorBlendState(colorBlending);
+
+        pipelineInfo.layout(pipelineLayout);
+        pipelineInfo.renderPass(renderPass);
+        pipelineInfo.subpass(0);
+        pipelineInfo.basePipelineHandle(VK_NULL_HANDLE);
+        pipelineInfo.basePipelineIndex(-1);
+        return pipelineInfo;
     }
 
     public static VkPipelineColorBlendStateCreateInfo createColorBlending(MemoryStack stack) {
@@ -261,10 +266,10 @@ public class VulkanGraphicsPipeline {
         return rasterizer;
     }
 
-    public static void getVkPipelineShaderStageCreateInfo(MemoryStack stack, long fragmentModule, int vkShaderStageFragmentBit, String entrypoint, VkPipelineShaderStageCreateInfo shaderStageInfo) {
+    public static void getVkPipelineShaderStageCreateInfo(MemoryStack stack, long module, int vkShaderStageFragmentBit, String entrypoint, VkPipelineShaderStageCreateInfo shaderStageInfo) {
         shaderStageInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
         shaderStageInfo.stage(vkShaderStageFragmentBit);
-        shaderStageInfo.module(fragmentModule);
+        shaderStageInfo.module(module);
         shaderStageInfo.pName(Objects.requireNonNull(stack.UTF8Safe(entrypoint)));
     }
 

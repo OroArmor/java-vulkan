@@ -40,7 +40,7 @@ public class VulkanSurfaces {
             LongBuffer pSurface = stack.longs(VK_NULL_HANDLE);
 
             if (GLFWVulkan.glfwCreateWindowSurface(VulkanTests.instance, VulkanTests.window, null, pSurface) != VK_SUCCESS) {
-                throw new RuntimeException("Unable to create window surface");
+                throw new RuntimeException("Unable to create window surface.");
             }
 
             surface = pSurface.get(0);

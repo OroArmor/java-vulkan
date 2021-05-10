@@ -27,25 +27,21 @@ package com.oroarmor.vulkan;
 import java.nio.IntBuffer;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkExtensionProperties;
 import org.lwjgl.vulkan.VkPhysicalDevice;
 
-import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.vkEnumerateDeviceExtensionProperties;
 import static org.lwjgl.vulkan.VK10.vkEnumeratePhysicalDevices;
 
 public class VulkanDevices {
     public static VkPhysicalDevice physicalDevice;
 
-    public static final Set<String> DEVICE_EXTENSIONS = Stream.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME).collect(Collectors.toSet());
-
     public static void pickPhysicalDevice() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer deviceCount = stack.callocInt(1);
+            IntBuffer deviceCount = stack.ints(0);
             vkEnumeratePhysicalDevices(VulkanTests.instance, deviceCount, null);
 
             if (deviceCount.get(0) == 0) {
@@ -84,7 +80,6 @@ public class VulkanDevices {
 
     public static boolean checkDeviceExtensionSupport(VkPhysicalDevice device) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-
             IntBuffer extensionCount = stack.ints(0);
 
             vkEnumerateDeviceExtensionProperties(device, (String) null, extensionCount, null);
@@ -93,10 +88,17 @@ public class VulkanDevices {
 
             vkEnumerateDeviceExtensionProperties(device, (String) null, extensionCount, availableExtensions);
 
-            return availableExtensions.stream()
+            Set<String> extensions = availableExtensions.stream()
                     .map(VkExtensionProperties::extensionNameString)
-                    .collect(Collectors.toSet())
-                    .containsAll(DEVICE_EXTENSIONS);
+                    .collect(Collectors.toSet());
+
+            Set<String> missingExtensions = VulkanDebug.DEVICE_EXTENSIONS.stream().filter(s -> !extensions.contains(s)).collect(Collectors.toSet());
+
+            if (!missingExtensions.isEmpty()) {
+                System.err.println("Missing Requested extensions! " + missingExtensions);
+            }
+
+            return extensions.containsAll(VulkanDebug.DEVICE_EXTENSIONS);
 
         }
     }

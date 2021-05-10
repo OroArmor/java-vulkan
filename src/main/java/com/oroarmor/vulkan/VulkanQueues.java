@@ -25,6 +25,7 @@
 package com.oroarmor.vulkan;
 
 import java.nio.IntBuffer;
+import java.util.stream.IntStream;
 
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkPhysicalDevice;
@@ -43,7 +44,11 @@ public class VulkanQueues {
         }
 
         public int[] unique() {
-            return new int[]{graphicsFamily, presentFamily};
+            return IntStream.of(graphicsFamily, presentFamily).distinct().toArray();
+        }
+
+        public int[] array() {
+            return new int[] {graphicsFamily, presentFamily};
         }
     }
 

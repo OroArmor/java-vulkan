@@ -40,19 +40,19 @@ public class VulkanFramebuffers {
         swapChainFrameBuffers = new ArrayList<>(VulkanImageViews.swapChainImageViews.size());
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            for (int i = 0; i < VulkanImageViews.swapChainImageViews.size(); i++) {
-                LongBuffer imageViews = stack.longs(VulkanImageViews.swapChainImageViews.get(i));
+            LongBuffer imageViews = stack.mallocLong(1);
+            LongBuffer pFramebuffer = stack.mallocLong(1);
+            VkFramebufferCreateInfo framebufferInfo = VkFramebufferCreateInfo.callocStack(stack);
+            framebufferInfo.sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
+            framebufferInfo.renderPass(VulkanGraphicsPipeline.renderPass);
+            framebufferInfo.width(VulkanSwapChains.swapChainExtent.width());
+            framebufferInfo.height(VulkanSwapChains.swapChainExtent.height());
+            framebufferInfo.layers(1);
+            for (Long imageView : VulkanImageViews.swapChainImageViews) {
+                imageViews.put(0, imageView);
 
-                VkFramebufferCreateInfo framebufferInfo = VkFramebufferCreateInfo.callocStack(stack);
-                framebufferInfo.sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-                framebufferInfo.renderPass(VulkanGraphicsPipeline.renderPass);
                 framebufferInfo.pAttachments(imageViews);
-                framebufferInfo.width(VulkanSwapChains.swapChainExtent.width());
-                framebufferInfo.height(VulkanSwapChains.swapChainExtent.height());
-                framebufferInfo.layers(1);
-
-                LongBuffer pFramebuffer = stack.longs(0);
-                if(vkCreateFramebuffer(VulkanLogicalDevices.device, framebufferInfo, null, pFramebuffer) != VK_SUCCESS) {
+                if (vkCreateFramebuffer(VulkanLogicalDevices.device, framebufferInfo, null, pFramebuffer) != VK_SUCCESS) {
                     throw new RuntimeException("Failed to create framebuffer.");
                 }
                 swapChainFrameBuffers.add(pFramebuffer.get(0));

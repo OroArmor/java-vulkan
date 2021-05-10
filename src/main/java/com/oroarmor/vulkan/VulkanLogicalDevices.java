@@ -35,9 +35,9 @@ public class VulkanLogicalDevices {
     public static VkQueue graphicsQueue;
     public static VkQueue presentQueue;
 
-    public static void createLogicalDevice(VkPhysicalDevice physicalDevice) {
+    public static void createLogicalDevice() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VulkanQueues.QueueFamilyIndices indices = VulkanQueues.findQueueFamilies(physicalDevice);
+            VulkanQueues.QueueFamilyIndices indices = VulkanQueues.findQueueFamilies(VulkanDevices.physicalDevice);
 
             int[] uniqueQueueFamilies = indices.unique();
             VkDeviceQueueCreateInfo.Buffer deviceQueueCreateInfo = VkDeviceQueueCreateInfo.callocStack(uniqueQueueFamilies.length, stack);
@@ -55,10 +55,9 @@ public class VulkanLogicalDevices {
             deviceCreateInfo.pQueueCreateInfos(deviceQueueCreateInfo);
 
             VkPhysicalDeviceFeatures deviceFeatures = VkPhysicalDeviceFeatures.callocStack(stack);
-
             deviceCreateInfo.pEnabledFeatures(deviceFeatures);
 
-            deviceCreateInfo.ppEnabledExtensionNames(VulkanTests.asPointerBuffer(VulkanDevices.DEVICE_EXTENSIONS));
+            deviceCreateInfo.ppEnabledExtensionNames(VulkanTests.asPointerBuffer(VulkanDebug.DEVICE_EXTENSIONS));
 
             if (VulkanTests.ENABLE_VALIDATION_LAYERS) {
                 deviceCreateInfo.ppEnabledLayerNames(VulkanTests.asPointerBuffer(VulkanValidationLayers.VALIDATION_LAYERS));
@@ -66,11 +65,11 @@ public class VulkanLogicalDevices {
 
             PointerBuffer pDevice = stack.pointers(VK_NULL_HANDLE);
 
-            if (vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create logical device");
+            if (vkCreateDevice(VulkanDevices.physicalDevice, deviceCreateInfo, null, pDevice) != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create logical device.");
             }
 
-            device = new VkDevice(pDevice.get(0), physicalDevice, deviceCreateInfo);
+            device = new VkDevice(pDevice.get(0), VulkanDevices.physicalDevice, deviceCreateInfo);
 
             PointerBuffer pQueue = stack.pointers(VK_NULL_HANDLE);
 

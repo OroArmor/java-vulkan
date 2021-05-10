@@ -67,7 +67,7 @@ public class VulkanImageViews {
                 createInfo.subresourceRange().layerCount(1);
 
                 if (vkCreateImageView(VulkanLogicalDevices.device, createInfo, null, pImageView) != VK_SUCCESS) {
-                    throw new RuntimeException("Failed to create image views");
+                    throw new RuntimeException("Failed to create image views.");
                 }
 
                 swapChainImageViews.add(pImageView.get(0));

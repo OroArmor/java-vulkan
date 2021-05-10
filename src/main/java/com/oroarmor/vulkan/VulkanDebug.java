@@ -25,6 +25,9 @@
 package com.oroarmor.vulkan;
 
 import java.nio.LongBuffer;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -34,12 +37,13 @@ import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;
 import org.lwjgl.vulkan.VkInstance;
 
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
+import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 
 public class VulkanDebug {
-    static int createDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT createInfo,
-                                            VkAllocationCallbacks allocationCallbacks, LongBuffer pDebugMessenger) {
+    public static final Set<String> DEVICE_EXTENSIONS = Stream.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME).collect(Collectors.toSet());
 
+    static int createDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT createInfo, VkAllocationCallbacks allocationCallbacks, LongBuffer pDebugMessenger) {
         if (vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
             return vkCreateDebugUtilsMessengerEXT(instance, createInfo, allocationCallbacks, pDebugMessenger);
         }
@@ -48,11 +52,9 @@ public class VulkanDebug {
     }
 
     static void destroyDebugUtilsMessengerEXT(VkInstance instance, long debugMessenger, VkAllocationCallbacks allocationCallbacks) {
-
         if (vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
             vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
         }
-
     }
 
     static int debugCallback(int messageSeverity, int messageType, long pCallbackData, long pUserData) {

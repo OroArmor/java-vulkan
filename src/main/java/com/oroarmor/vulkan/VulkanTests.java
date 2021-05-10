@@ -47,35 +47,64 @@ public class VulkanTests {
     public static final int WIDTH = 800;
     public static final int HEIGHT = 600;
 
+    public static final int MAX_FRAMES_IN_FLIGHT = 2;
+    public static int frame = 0;
+
     public static VkInstance instance;
     public static long window;
     public static long debugMessenger;
 
     public static final boolean ENABLE_VALIDATION_LAYERS = DEBUG.get(true);
+    private static boolean frameBufferResized = false;
 
     public static void main(String[] args) {
         initGLFW();
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", MemoryUtil.NULL, MemoryUtil.NULL);
+        glfwSetFramebufferSizeCallback(window, VulkanTests::frameBufferResizeCallback);
         initVulkan();
-
         loop();
         cleanup();
     }
+
+    public static void frameBufferResizeCallback(long window, int width, int height) {
+        frameBufferResized = true;
+    }
+
 
     private static void initVulkan() {
         instance = createVulkanInstance();
         VulkanDebug.setupDebugMessenger();
         VulkanSurfaces.createSurface();
         VulkanDevices.pickPhysicalDevice();
-        VulkanLogicalDevices.createLogicalDevice(VulkanDevices.physicalDevice);
+        VulkanLogicalDevices.createLogicalDevice();
+        VulkanCommandPools.createCommandPool();
+        recreateSwapChain();
+        VulkanSemaphore.createSemaphore();
+    }
+
+    private static void recreateSwapChain() {
+        try(MemoryStack stack = MemoryStack.stackPush()) {
+
+            IntBuffer width = stack.ints(0);
+            IntBuffer height = stack.ints(0);
+
+            while(width.get(0) == 0 && height.get(0) == 0) {
+                glfwGetFramebufferSize(window, width, height);
+                glfwWaitEvents();
+            }
+        }
+
+        vkDeviceWaitIdle(VulkanLogicalDevices.device);
+
+        if (VulkanSwapChains.swapChainImages != null)
+            cleanupSwapChain();
+
         VulkanSwapChains.createSwapChain();
         VulkanImageViews.createImageViews();
         VulkanGraphicsPipeline.createRenderPass();
         VulkanGraphicsPipeline.createGraphicsPipeline();
         VulkanFramebuffers.createFramebuffers();
-        VulkanCommandPools.createCommandPool();
         VulkanCommandPools.createCommandBuffers();
-        VulkanSemaphore.createSemaphore();
     }
 
     private static void loop() {
@@ -88,19 +117,33 @@ public class VulkanTests {
     public static void drawFrame() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer imageIndex = stack.mallocInt(1);
-            vkAcquireNextImageKHR(VulkanLogicalDevices.device, VulkanSwapChains.swapChain, UINT64_MAX, VulkanSemaphore.imageAvailableSemaphore, VK_NULL_HANDLE, imageIndex);
+            int result = vkAcquireNextImageKHR(VulkanLogicalDevices.device, VulkanSwapChains.swapChain, UINT64_MAX, VulkanSemaphore.imageAvailableSemaphore.get(frame), VK_NULL_HANDLE, imageIndex);
+
+            if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+                recreateSwapChain();
+                return;
+            } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+                throw new RuntimeException("Unable to acquire swap chain image.");
+            }
+
+            if (VulkanSemaphore.imagesInFlight.get(imageIndex.get(0)) != VK_NULL_HANDLE) {
+                vkWaitForFences(VulkanLogicalDevices.device, VulkanSemaphore.inFlightFences.get(frame), true, UINT64_MAX);
+            }
+            VulkanSemaphore.imagesInFlight.set(imageIndex.get(0), VulkanSemaphore.inFlightFences.get(frame));
 
             VkSubmitInfo submitInfo = VkSubmitInfo.callocStack(stack);
             submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
             submitInfo.waitSemaphoreCount(1);
-            submitInfo.pWaitSemaphores(stack.longs(VulkanSemaphore.imageAvailableSemaphore));
+            submitInfo.pWaitSemaphores(stack.longs(VulkanSemaphore.imageAvailableSemaphore.get(frame)));
             submitInfo.pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT));
             submitInfo.pCommandBuffers(stack.pointers(VulkanCommandPools.commandBuffers.get(imageIndex.get(0))));
 
-            LongBuffer signal = stack.longs(VulkanSemaphore.renderFinishedSemaphore);
+            LongBuffer signal = stack.longs(VulkanSemaphore.renderFinishedSemaphore.get(frame));
             submitInfo.pSignalSemaphores(signal);
 
-            if (vkQueueSubmit(VulkanLogicalDevices.graphicsQueue, submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+            vkResetFences(VulkanLogicalDevices.device, VulkanSemaphore.inFlightFences.get(frame));
+
+            if (vkQueueSubmit(VulkanLogicalDevices.graphicsQueue, submitInfo, VulkanSemaphore.inFlightFences.get(frame)) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to submit draw call to command buffer.");
             }
 
@@ -115,19 +158,24 @@ public class VulkanTests {
             presentInfo.pImageIndices(imageIndex);
             presentInfo.pResults(null);
 
-            vkQueuePresentKHR(VulkanLogicalDevices.presentQueue, presentInfo);
+            result = vkQueuePresentKHR(VulkanLogicalDevices.presentQueue, presentInfo);
+
+            if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
+                recreateSwapChain();
+            } else if (result != VK_SUCCESS) {
+                throw new RuntimeException("Unable to present swap chain image.");
+            }
+
+            vkQueueWaitIdle(VulkanLogicalDevices.presentQueue);
+
+            frame = (frame + 1) % MAX_FRAMES_IN_FLIGHT;
         }
     }
 
-    private static void cleanup() {
-        vkDestroySemaphore(VulkanLogicalDevices.device, VulkanSemaphore.renderFinishedSemaphore, null);
-        vkDestroySemaphore(VulkanLogicalDevices.device, VulkanSemaphore.imageAvailableSemaphore, null);
+    public static void cleanupSwapChain() {
+        VulkanFramebuffers.swapChainFrameBuffers.forEach(framebuffer -> vkDestroyFramebuffer(VulkanLogicalDevices.device, framebuffer, null));
 
-        vkDestroyCommandPool(VulkanLogicalDevices.device, VulkanCommandPools.commandPool, null);
-
-        for (long framebuffer : VulkanFramebuffers.swapChainFrameBuffers) {
-            vkDestroyFramebuffer(VulkanLogicalDevices.device, framebuffer, null);
-        }
+        VulkanCommandPools.commandBuffers.forEach(vkCommandBuffer -> vkFreeCommandBuffers(VulkanLogicalDevices.device, VulkanCommandPools.commandPool, vkCommandBuffer));
 
         vkDestroyPipeline(VulkanLogicalDevices.device, VulkanGraphicsPipeline.graphicsPipeline, null);
         vkDestroyPipelineLayout(VulkanLogicalDevices.device, VulkanGraphicsPipeline.pipelineLayout, null);
@@ -138,6 +186,17 @@ public class VulkanTests {
         }
 
         vkDestroySwapchainKHR(VulkanLogicalDevices.device, VulkanSwapChains.swapChain, null);
+    }
+
+    private static void cleanup() {
+        cleanupSwapChain();
+
+        VulkanSemaphore.renderFinishedSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
+//        VulkanSemaphore.imageAvailableSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
+        VulkanSemaphore.inFlightFences.forEach(l -> vkDestroyFence(VulkanLogicalDevices.device, l, null));
+
+        vkDestroyCommandPool(VulkanLogicalDevices.device, VulkanCommandPools.commandPool, null);
+
         vkDestroyDevice(VulkanLogicalDevices.device, null);
 
         if (ENABLE_VALIDATION_LAYERS) {
@@ -163,13 +222,11 @@ public class VulkanTests {
 
             PointerBuffer instancePtr = stack.mallocPointer(1);
 
-            int result = vkCreateInstance(info, null, instancePtr);
-
-            if (result != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create Vulkan Instance");
+            if (vkCreateInstance(info, null, instancePtr) != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create Vulkan Instance.");
             }
 
-            return new VkInstance(instancePtr.get(), info);
+            return new VkInstance(instancePtr.get(0), info);
         }
     }
 
@@ -204,10 +261,13 @@ public class VulkanTests {
     }
 
     private static void initGLFW() {
-        glfwInit();
+        if (!glfwInit()) {
+            throw new RuntimeException("Cannot initialize GLFW.");
+        }
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     }
+
 
     public static PointerBuffer asPointerBuffer(Collection<String> collection) {
         MemoryStack stack = MemoryStack.stackGet();

@@ -43,7 +43,7 @@ public class VulkanValidationLayers {
 
     static boolean checkValidationLayerSupport() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer layerCounts = stack.callocInt(1);
+            IntBuffer layerCounts = stack.ints(0);
             vkEnumerateInstanceLayerProperties(layerCounts, null);
             VkLayerProperties.Buffer availableLayers = VkLayerProperties.mallocStack(layerCounts.get(0), stack);
             vkEnumerateInstanceLayerProperties(layerCounts, availableLayers);

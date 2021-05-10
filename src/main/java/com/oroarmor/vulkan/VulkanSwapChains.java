@@ -95,7 +95,7 @@ public class VulkanSwapChains {
             LongBuffer pSwapChain = stack.longs(VK_NULL_HANDLE);
 
             if(vkCreateSwapchainKHR(VulkanLogicalDevices.device, createInfo, null, pSwapChain) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create swap chain");
+                throw new RuntimeException("Failed to create swap chain.");
             }
 
             swapChain = pSwapChain.get(0);
@@ -108,7 +108,7 @@ public class VulkanSwapChains {
 
             swapChainImages = new ArrayList<>(imageCount.get(0));
 
-            for(int i = 0;i < pSwapchainImages.capacity();i++) {
+            for(int i = 0; i < pSwapchainImages.capacity(); i++) {
                 swapChainImages.add(pSwapchainImages.get(i));
             }
 
@@ -132,15 +132,13 @@ public class VulkanSwapChains {
 
         IntBuffer count = stack.ints(0);
 
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, VulkanSurfaces.surface, count, details.formats);
-
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, VulkanSurfaces.surface, count, null);
         if (count.get(0) != 0) {
             details.formats = VkSurfaceFormatKHR.mallocStack(count.get(0), stack);
             vkGetPhysicalDeviceSurfaceFormatsKHR(device, VulkanSurfaces.surface, count, details.formats);
         }
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, VulkanSurfaces.surface, count, null);
-
         if (count.get(0) != 0) {
             details.presentModes = stack.mallocInt(count.get(0));
             vkGetPhysicalDeviceSurfacePresentModesKHR(device, VulkanSurfaces.surface, count, details.presentModes);

@@ -87,12 +87,6 @@ public class ShaderUtils {
         return new SPIRV(result, shaderc_result_get_bytes(result));
     }
 
-    public static SPIRV loadShaderFromResource(String resourceLocation, ShaderType type) {
-        String fileSource = ResourceLoader.loadFileString(ShaderUtils.class.getClassLoader().getResourceAsStream(resourceLocation));
-
-        return compileShader(resourceLocation, fileSource, type);
-    }
-
     public static final class SPIRV implements NativeResource {
 
         private final long handle;

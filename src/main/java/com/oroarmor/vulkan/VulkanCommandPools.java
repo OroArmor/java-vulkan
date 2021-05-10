@@ -48,7 +48,7 @@ public class VulkanCommandPools {
             poolInfo.queueFamilyIndex(indices.graphicsFamily);
             poolInfo.flags(0);
 
-            LongBuffer pCommandPool = stack.longs(0);
+            LongBuffer pCommandPool = stack.mallocLong(1);
             if (vkCreateCommandPool(VulkanLogicalDevices.device, poolInfo, null, pCommandPool) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to create command pool.");
             }
@@ -66,14 +66,14 @@ public class VulkanCommandPools {
             allocInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
             allocInfo.commandBufferCount(commandBuffersCount);
 
-            PointerBuffer pCommandPools = stack.callocPointer(commandBuffersCount);
+            PointerBuffer pCommandPools = stack.mallocPointer(commandBuffersCount);
 
             if (vkAllocateCommandBuffers(VulkanLogicalDevices.device, allocInfo, pCommandPools) != VK_SUCCESS) {
                 throw new RuntimeException("Unable to allocate command buffers.");
             }
 
             for (int i = 0; i < commandBuffersCount; i++) {
-                commandBuffers.add(new VkCommandBuffer(pCommandPools.get(0), VulkanLogicalDevices.device));
+                commandBuffers.add(new VkCommandBuffer(pCommandPools.get(i), VulkanLogicalDevices.device));
             }
 
             VkCommandBufferBeginInfo beginInfo = VkCommandBufferBeginInfo.callocStack(stack);
