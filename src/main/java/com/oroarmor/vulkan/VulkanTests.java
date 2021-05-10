@@ -60,7 +60,7 @@ public class VulkanTests {
     private static boolean frameBufferResized = false;
 
     public static final Vertex[] VERTICES = {
-            new Vertex(new Vector2f(0.0f, -0.5f), new Vector3f(1.0f, 0.0f, 0.0f)),
+            new Vertex(new Vector2f(0f, -0.5f), new Vector3f(1.0f, 0.0f, 0.0f)),
             new Vertex(new Vector2f(0.5f, 0.5f), new Vector3f(0.0f, 1.0f, 0.0f)),
             new Vertex(new Vector2f(-0.5f, 0.5f), new Vector3f(0.0f, 0.0f, 1.0f))
     };
