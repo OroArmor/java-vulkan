@@ -26,6 +26,8 @@ package com.oroarmor.vulkan;
 
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -39,6 +41,8 @@ public class VulkanVertexBuffers {
 
     public static long indexBuffer;
     public static long indexBufferMemory;
+
+    public static List<Long> uniformBuffers, uniformBufferMemories;
 
     public static void createVertexBuffer() {
         int size = Vertex.SIZEOF * VulkanTests.VERTICES.length;
@@ -183,6 +187,22 @@ public class VulkanVertexBuffers {
             vkQueueWaitIdle(VulkanLogicalDevices.graphicsQueue);
 
             vkFreeCommandBuffers(VulkanLogicalDevices.device, VulkanCommandPools.commandPool, pCommandBuffer);
+        }
+    }
+
+    public static void createUniformBuffers() {
+        uniformBuffers = new ArrayList<>(VulkanSwapChains.swapChainImages.size());
+        uniformBufferMemories = new ArrayList<>(VulkanSwapChains.swapChainImages.size());
+
+        try(MemoryStack stack = MemoryStack.stackPush()) {
+            LongBuffer pBuffer = stack.mallocLong(1);
+            LongBuffer pBufferMemory = stack.mallocLong(1);
+
+            for (int i = 0; i < VulkanSwapChains.swapChainImages.size(); i++) {
+                createBuffer(UniformBufferObject.SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, pBuffer, pBufferMemory, stack);
+                uniformBuffers.add(pBuffer.get(0));
+                uniformBufferMemories.add(pBufferMemory.get(0));
+            }
         }
     }
 }

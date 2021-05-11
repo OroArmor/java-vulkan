@@ -11,6 +11,7 @@ buildscript {
 
 plugins {
     id "java-library"
+    id "application"
     id 'maven-publish'
     id 'org.cadixdev.licenser' version '0.5.0'
     id "signing"
@@ -20,7 +21,6 @@ plugins {
 archivesBaseName = project.archives_base_name
 version = project.version
 group = project.maven_group
-
 
 import org.gradle.internal.os.OperatingSystem
 
@@ -122,6 +122,10 @@ dependencies {
     api "org.joml:joml:${jomlVersion}"
 }
 
+run {
+    mainClassName = "com.oroarmor.vulkan.VulkanTests"
+}
+
 ext.changelog = ""
 
 tasks.withType(Sign) {
@@ -155,6 +159,10 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}" }
     }
+
+    manifest {
+        attributes "Main-Class": (tasks.getByName("run") as JavaExec).getMain()
+    }
 }
 
 artifacts {
@@ -179,16 +187,16 @@ uploadArchives {
                 authentication(userName: ossrhUsername, password: ossrhPassword)
             }
             pom.project {
-                name 'Library for LWJGL'
+                name 'Vulkan Java'
                 packaging 'jar'
                 // optionally artifactId can be defined here
                 description 'A Library for LWJGL programs'
-                url 'http://github.com/OroArmor/LibraryForLWJGL'
+                url 'http://github.com/OroArmor/java-vulkan'
 
                 scm {
-                    connection 'scm:git:git://github.com/OroArmor/LibraryForLWJGL.git'
-                    developerConnection 'scm:git:ssh://github.com:OroArmor/LibraryForLWJGL.git'
-                    url 'http://github.com/OroArmor/LibraryForLWJGL'
+                    connection 'scm:git:git://github.com/OroArmor/java-vulkan.git'
+                    developerConnection 'scm:git:ssh://github.com:OroArmor/java-vulkan.git'
+                    url 'http://github.com/OroArmor/java-vulkan'
 
                 }
 
@@ -219,7 +227,7 @@ task github {
 
     doLast {
         def github = org.kohsuke.github.GitHub.connectUsingOAuth(System.getenv().GITHUB_TOKEN as String)
-        def repository = github.getRepository("OroArmor/LibraryForLWJGL")
+        def repository = github.getRepository("OroArmor/java-vulkan")
 
         def releaseBuilder = new org.kohsuke.github.GHReleaseBuilder(repository, project.mod_version)
         releaseBuilder.name("$project.project_name $project.mod_version for $project.minecraft_version")

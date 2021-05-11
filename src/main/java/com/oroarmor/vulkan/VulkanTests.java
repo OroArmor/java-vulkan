@@ -24,6 +24,7 @@
 
 package com.oroarmor.vulkan;
 
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.Collection;
@@ -56,17 +57,24 @@ public class VulkanTests {
     public static long window;
     public static long debugMessenger;
 
-    public static final boolean ENABLE_VALIDATION_LAYERS = DEBUG.get(true);
+    public static final boolean ENABLE_VALIDATION_LAYERS = DEBUG.get(false);
     private static boolean frameBufferResized = false;
 
+    public static final float HEXAGON_RADIUS = 1;
+    public static final float HALF_RADIUS = HEXAGON_RADIUS / 2;
+    public static final float HEXAGON_HEIGHT = ((float) Math.sqrt(3) / 2) * HEXAGON_RADIUS;
+
     public static final Vertex[] VERTICES = {
-            new Vertex(new Vector2f(-0.5f, -0.5f), new Vector3f(1.0f, 0.0f, 0.0f)),
-            new Vertex(new Vector2f(0.5f, -0.5f), new Vector3f(0.0f, 1.0f, 0.0f)),
-            new Vertex(new Vector2f(0.5f, 0.5f), new Vector3f(0.0f, 0.0f, 1.0f)),
-            new Vertex(new Vector2f(-0.5f, 0.5f), new Vector3f(1.0f, 1.0f, 1.0f))
+            new Vertex(new Vector2f(0, 0), new Vector3f(1.0f, 1.0f, 1.0f)),
+            new Vertex(new Vector2f(-HEXAGON_RADIUS, 0), new Vector3f(1.0f, 0.0f, 0.0f)),
+            new Vertex(new Vector2f(-HALF_RADIUS, HEXAGON_HEIGHT), new Vector3f(1.0f, 1.0f, 0.0f)),
+            new Vertex(new Vector2f(HALF_RADIUS, HEXAGON_HEIGHT), new Vector3f(0.0f, 1.0f, 0.0f)),
+            new Vertex(new Vector2f(HEXAGON_RADIUS, 0), new Vector3f(0.0f, 1.0f, 1.0f)),
+            new Vertex(new Vector2f(HALF_RADIUS, -HEXAGON_HEIGHT), new Vector3f(0.0f, -0.0f, 1.0f)),
+            new Vertex(new Vector2f(-HALF_RADIUS, -HEXAGON_HEIGHT), new Vector3f(1.0f, 0.0f, 1.0f))
     };
 
-    public static final int[] INDICES = {0, 1, 2, 2, 3, 0};
+    public static final int[] INDICES = {0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6, 0, 6, 1};
 
     public static void main(String[] args) {
         initGLFW();
@@ -91,6 +99,7 @@ public class VulkanTests {
         VulkanCommandPools.createCommandPool();
         VulkanVertexBuffers.createVertexBuffer();
         VulkanVertexBuffers.createIndexBuffer();
+        VulkanDescriptorSets.createDescriptorSetLayout();
         recreateSwapChain();
         VulkanSemaphore.createSemaphore();
     }
@@ -117,7 +126,12 @@ public class VulkanTests {
         VulkanGraphicsPipeline.createRenderPass();
         VulkanGraphicsPipeline.createGraphicsPipeline();
         VulkanFramebuffers.createFramebuffers();
+        VulkanVertexBuffers.createUniformBuffers();
+        VulkanDescriptorSets.createDescriptorPool();
+        VulkanDescriptorSets.createDescriptorSets();
         VulkanCommandPools.createCommandBuffers();
+
+        frameBufferResized = false;
     }
 
     private static void loop() {
@@ -143,6 +157,8 @@ public class VulkanTests {
                 vkWaitForFences(VulkanLogicalDevices.device, VulkanSemaphore.inFlightFences.get(frame), true, UINT64_MAX);
             }
             VulkanSemaphore.imagesInFlight.set(imageIndex.get(0), VulkanSemaphore.inFlightFences.get(frame));
+
+            updateUniformBuffer(imageIndex.get(0));
 
             VkSubmitInfo submitInfo = VkSubmitInfo.callocStack(stack);
             submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
@@ -187,6 +203,28 @@ public class VulkanTests {
         }
     }
 
+    public static void updateUniformBuffer(int imageIndex) {
+        UniformBufferObject object = new UniformBufferObject();
+        object.model.rotate((float) (glfwGetTime() * Math.toRadians(90)), 0, 0, 1);
+        object.view.lookAt(2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+        object.projection.perspective((float) Math.toRadians(45), (float) VulkanSwapChains.swapChainExtent.width() / (float) VulkanSwapChains.swapChainExtent.height(), 0.1f, 10f);
+        object.projection.m11(object.projection.m11() * -1);
+
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            PointerBuffer data = stack.mallocPointer(1);
+            vkMapMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.uniformBufferMemories.get(imageIndex), 0, UniformBufferObject.SIZE, 0, data);
+            memcpy(data.getByteBuffer(0, UniformBufferObject.SIZE), object);
+            vkUnmapMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.uniformBufferMemories.get(imageIndex));
+        }
+    }
+
+    private static void memcpy(ByteBuffer byteBuffer, UniformBufferObject object) {
+        final int mat4Size = 4 * 4 * Float.BYTES;
+        object.model.get(0, byteBuffer);
+        object.view.get(mat4Size, byteBuffer);
+        object.projection.get(2 * mat4Size, byteBuffer);
+    }
+
     public static void cleanupSwapChain() {
         VulkanFramebuffers.swapChainFrameBuffers.forEach(framebuffer -> vkDestroyFramebuffer(VulkanLogicalDevices.device, framebuffer, null));
 
@@ -201,10 +239,17 @@ public class VulkanTests {
         }
 
         vkDestroySwapchainKHR(VulkanLogicalDevices.device, VulkanSwapChains.swapChain, null);
+
+        VulkanVertexBuffers.uniformBuffers.forEach(l -> vkDestroyBuffer(VulkanLogicalDevices.device, l, null));
+        VulkanVertexBuffers.uniformBufferMemories.forEach(l -> vkFreeMemory(VulkanLogicalDevices.device, l, null));
+
+        vkDestroyDescriptorPool(VulkanLogicalDevices.device, VulkanDescriptorSets.descriptorPool, null);
     }
 
     private static void cleanup() {
         cleanupSwapChain();
+
+        vkDestroyDescriptorSetLayout(VulkanLogicalDevices.device, VulkanDescriptorSets.descriptorSetLayout, null);
 
         vkDestroyBuffer(VulkanLogicalDevices.device, VulkanVertexBuffers.vertexBuffer, null);
         vkFreeMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.vertexBufferMemory, null);

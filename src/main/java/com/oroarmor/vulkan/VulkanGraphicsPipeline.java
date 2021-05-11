@@ -130,6 +130,7 @@ public class VulkanGraphicsPipeline {
 
             VkPipelineLayoutCreateInfo pipelineLayoutInfo = VkPipelineLayoutCreateInfo.callocStack(stack);
             pipelineLayoutInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
+            pipelineLayoutInfo.pSetLayouts(stack.longs(VulkanDescriptorSets.descriptorSetLayout));
 
             LongBuffer pLayoutInfo = stack.longs(VK_NULL_HANDLE);
 
@@ -138,7 +139,6 @@ public class VulkanGraphicsPipeline {
             }
 
             pipelineLayout = pLayoutInfo.get(0);
-
 
             VkGraphicsPipelineCreateInfo.Buffer pipelineInfo = createGraphicsPipelineInfo(stack, shaderStages, vertexInputInfo, inputAssembly, viewportState, rasterizer, multisampling, colorBlending);
 
@@ -263,8 +263,8 @@ public class VulkanGraphicsPipeline {
         rasterizer.polygonMode(VK_POLYGON_MODE_FILL);
 
         rasterizer.lineWidth(1);
-        rasterizer.cullMode(VK_CULL_MODE_BACK_BIT);
-        rasterizer.frontFace(VK_FRONT_FACE_CLOCKWISE);
+        rasterizer.cullMode(VK_CULL_MODE_NONE);
+        rasterizer.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
         rasterizer.depthBiasEnable(false);
         return rasterizer;

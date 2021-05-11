@@ -106,6 +106,7 @@ public class VulkanCommandPools {
                 vkCmdBindVertexBuffers(commandBuffer, 0, stack.longs(VulkanVertexBuffers.vertexBuffer), stack.longs(0));
                 vkCmdBindIndexBuffer(commandBuffer, VulkanVertexBuffers.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, VulkanGraphicsPipeline.pipelineLayout, 0, stack.longs(VulkanDescriptorSets.descriptorSets.get(i)), null);
                 vkCmdDrawIndexed(commandBuffer, VulkanTests.INDICES.length, 1, 0, 0, 0);
                 vkCmdEndRenderPass(commandBuffer);
 
