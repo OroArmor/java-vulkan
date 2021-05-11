@@ -24,7 +24,7 @@ group = project.maven_group
 
 import org.gradle.internal.os.OperatingSystem
 
-project.ext.lwjglVersion = "3.3.0-SNAPSHOT"
+project.ext.lwjglVersion = "3.2.3"
 project.ext.jomlVersion = "1.10.0"
 
 switch (OperatingSystem.current()) {
@@ -44,7 +44,6 @@ switch (OperatingSystem.current()) {
 
 repositories {
     mavenCentral()
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
 }
 
 dependencies {
