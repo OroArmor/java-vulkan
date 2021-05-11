@@ -119,6 +119,8 @@ dependencies {
     runtimeOnly "org.lwjgl:lwjgl-yoga::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-zstd::$lwjglNatives"
     api "org.joml:joml:${jomlVersion}"
+
+    api "org.jetbrains:annotations:19.0.0"
 }
 
 run {

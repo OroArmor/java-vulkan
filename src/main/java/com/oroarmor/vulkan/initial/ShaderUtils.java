@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.initial;
 
 import java.io.IOException;
 import java.net.URI;

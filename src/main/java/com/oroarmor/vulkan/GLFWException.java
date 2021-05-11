@@ -24,25 +24,20 @@
 
 package com.oroarmor.vulkan;
 
-import org.joml.Matrix4f;
-
-public class UniformBufferObject {
-    public static int SIZE = 3 * 4 * 4 * Float.BYTES;
-
-    public Matrix4f model, view, projection;
-
-    public UniformBufferObject() {
-        model = new Matrix4f().identity();
-        view = new Matrix4f().identity();
-        projection = new Matrix4f().identity();
+public class GLFWException extends RuntimeException {
+    public GLFWException() {
+        super();
     }
 
-    @Override
-    public String toString() {
-        return "UniformBufferObject{" +
-                "model=" + model +
-                ", view=" + view +
-                ", projection=" + projection +
-                '}';
+    public GLFWException(String message) {
+        super(message);
+    }
+
+    public GLFWException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public GLFWException(Throwable cause) {
+        super(cause);
     }
 }

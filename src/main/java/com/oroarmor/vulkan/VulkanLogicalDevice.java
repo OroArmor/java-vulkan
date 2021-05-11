@@ -30,14 +30,31 @@ import org.lwjgl.vulkan.*;
 
 import static org.lwjgl.vulkan.VK10.*;
 
-public class VulkanLogicalDevices {
-    public static VkDevice device;
-    public static VkQueue graphicsQueue;
-    public static VkQueue presentQueue;
+public class VulkanLogicalDevice implements AutoCloseable {
+    protected final VkDevice device;
+    protected final VkQueue graphicsQueue;
+    protected final VkQueue presentQueue;
+    protected final VulkanContext context;
 
-    public static void createLogicalDevice() {
+    public VulkanLogicalDevice(VulkanContext context) {
+        this.context = context;
+        device = createVulkanDevice();
+        graphicsQueue = createDeviceQueue(context.getVulkanPhysicalDevice().getQueueFamilyIndices().graphicsFamily);
+        presentQueue = createDeviceQueue(context.getVulkanPhysicalDevice().getQueueFamilyIndices().presentFamily);
+    }
+
+    private VkQueue createDeviceQueue(Integer queueFamily) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VulkanQueues.QueueFamilyIndices indices = VulkanQueues.findQueueFamilies(VulkanDevices.physicalDevice);
+            PointerBuffer pQueue = stack.pointers(VK_NULL_HANDLE);
+
+            vkGetDeviceQueue(device, queueFamily, 0, pQueue);
+            return new VkQueue(pQueue.get(0), device);
+        }
+    }
+
+    private VkDevice createVulkanDevice() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            VulkanPhysicalDevice.QueueFamilyIndices indices = context.getVulkanPhysicalDevice().getQueueFamilyIndices();
 
             int[] uniqueQueueFamilies = indices.unique();
             VkDeviceQueueCreateInfo.Buffer deviceQueueCreateInfo = VkDeviceQueueCreateInfo.callocStack(uniqueQueueFamilies.length, stack);
@@ -57,27 +74,22 @@ public class VulkanLogicalDevices {
             VkPhysicalDeviceFeatures deviceFeatures = VkPhysicalDeviceFeatures.callocStack(stack);
             deviceCreateInfo.pEnabledFeatures(deviceFeatures);
 
-            deviceCreateInfo.ppEnabledExtensionNames(VulkanTests.asPointerBuffer(VulkanDebug.DEVICE_EXTENSIONS));
+            deviceCreateInfo.ppEnabledExtensionNames(VulkanUtil.asPointerBuffer(VulkanPhysicalDevice.DEVICE_EXTENSIONS));
 
-            if (VulkanTests.ENABLE_VALIDATION_LAYERS) {
-                deviceCreateInfo.ppEnabledLayerNames(VulkanTests.asPointerBuffer(VulkanValidationLayers.VALIDATION_LAYERS));
+            if (context.getVulkanDebug().isDebugEnabled()) {
+                deviceCreateInfo.ppEnabledLayerNames(VulkanUtil.asPointerBuffer(VulkanValidationLayers.VALIDATION_LAYERS));
             }
 
             PointerBuffer pDevice = stack.pointers(VK_NULL_HANDLE);
 
-            if (vkCreateDevice(VulkanDevices.physicalDevice, deviceCreateInfo, null, pDevice) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create logical device.");
-            }
+            VulkanUtil.checkVulkanResult(vkCreateDevice(context.getVulkanPhysicalDevice().getPhysicalDevice(), deviceCreateInfo, null, pDevice),"Failed to create logical device.");
 
-            device = new VkDevice(pDevice.get(0), VulkanDevices.physicalDevice, deviceCreateInfo);
-
-            PointerBuffer pQueue = stack.pointers(VK_NULL_HANDLE);
-
-            vkGetDeviceQueue(device, indices.graphicsFamily, 0, pQueue);
-            graphicsQueue = new VkQueue(pQueue.get(0), device);
-
-            vkGetDeviceQueue(device, indices.presentFamily, 0, pQueue);
-            presentQueue = new VkQueue(pQueue.get(0), device);
+            return new VkDevice(pDevice.get(0), context.getVulkanPhysicalDevice().getPhysicalDevice(), deviceCreateInfo);
         }
+    }
+
+    @Override
+    public void close() {
+        vkDestroyDevice(device, null);
     }
 }

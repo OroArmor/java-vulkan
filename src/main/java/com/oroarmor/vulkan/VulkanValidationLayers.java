@@ -25,23 +25,55 @@
 package com.oroarmor.vulkan;
 
 import java.nio.IntBuffer;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.oroarmor.vulkan.initial.VulkanTests;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
 import org.lwjgl.vulkan.VkLayerProperties;
 
-import static org.lwjgl.vulkan.EXTDebugUtils.*;
-import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+import static org.lwjgl.vulkan.VK10.vkEnumerateInstanceLayerProperties;
 
 public class VulkanValidationLayers {
-    public static final Set<String> VALIDATION_LAYERS = new HashSet<>(Set.of("VK_LAYER_KHRONOS_validation"));
+    public static final Set<String> VALIDATION_LAYERS = Set.of("VK_LAYER_KHRONOS_validation");
 
-    static boolean checkValidationLayerSupport() {
+    protected final VulkanDebug debug;
+
+    public VulkanValidationLayers(VulkanDebug debug) {
+        this.debug = debug;
+    }
+
+    public void addValidationLayers(VkInstanceCreateInfo info) {
+        if (VulkanTests.ENABLE_VALIDATION_LAYERS) {
+            try(MemoryStack stack = MemoryStack.stackPush()) {
+                info.ppEnabledLayerNames(VulkanTests.asPointerBuffer(VALIDATION_LAYERS));
+                VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT.callocStack(stack);
+                debug.populateDebugMessengerCreateInfo(debugCreateInfo);
+                info.pNext(debugCreateInfo.address());
+            }
+        }
+    }
+
+    public PointerBuffer getRequiredExtensions(PointerBuffer requiredGLFWExtensions) {
+        if (debug.isDebugEnabled()) {
+            MemoryStack stack = MemoryStack.stackGet();
+
+            PointerBuffer extensions = stack.mallocPointer(requiredGLFWExtensions.capacity() + 1);
+
+            extensions.put(requiredGLFWExtensions);
+            extensions.put(stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
+
+            // Rewind the buffer before returning it to reset its position back to 0
+            return extensions.rewind();
+        }
+        return requiredGLFWExtensions;
+    }
+
+    public boolean checkValidationLayerSupport() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer layerCounts = stack.ints(0);
             vkEnumerateInstanceLayerProperties(layerCounts, null);
@@ -52,27 +84,7 @@ public class VulkanValidationLayers {
         }
     }
 
-    static void addValidationLayers(MemoryStack stack, VkInstanceCreateInfo info) {
-        if (VulkanTests.ENABLE_VALIDATION_LAYERS) {
-            info.ppEnabledLayerNames(VulkanTests.asPointerBuffer(VALIDATION_LAYERS));
-            VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT.callocStack(stack);
-            VulkanDebug.populateDebugMessengerCreateInfo(debugCreateInfo);
-            info.pNext(debugCreateInfo.address());
-        }
-    }
-
-    static PointerBuffer getValidationLayers(PointerBuffer glfwExtensions) {
-        if (VulkanTests.ENABLE_VALIDATION_LAYERS) {
-            MemoryStack stack = MemoryStack.stackGet();
-
-            PointerBuffer extensions = stack.mallocPointer(glfwExtensions.capacity() + 1);
-
-            extensions.put(glfwExtensions);
-            extensions.put(stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
-
-            // Rewind the buffer before returning it to reset its position back to 0
-            return extensions.rewind();
-        }
-        return null;
+    public VulkanDebug getDebug() {
+        return debug;
     }
 }

@@ -24,26 +24,33 @@
 
 package com.oroarmor.vulkan;
 
-import java.nio.LongBuffer;
+import static org.lwjgl.glfw.GLFW.*;
 
-import org.lwjgl.glfw.GLFWVulkan;
-import org.lwjgl.system.MemoryStack;
+public class VulkanApplication implements AutoCloseable {
+    private final GLFWContext glfwContext;
+    private final VulkanContext vulkanContext;
 
-import static org.lwjgl.vulkan.VK10.VK_NULL_HANDLE;
-import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
+    public VulkanApplication() {
+        glfwContext = new GLFWContext(800, 600, "Hello Vulkan");
+        vulkanContext = new VulkanContext(glfwContext);
+    }
 
-public class VulkanSurfaces {
-    public static long surface;
-
-    public static void createSurface() {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            LongBuffer pSurface = stack.longs(VK_NULL_HANDLE);
-
-            if (GLFWVulkan.glfwCreateWindowSurface(VulkanTests.instance, VulkanTests.window, null, pSurface) != VK_SUCCESS) {
-                throw new RuntimeException("Unable to create window surface.");
+    public void run() {
+        glfwContext.addKeyCallback((window, key, scancode, action, mods) -> {
+            if (key == GLFW_KEY_ESCAPE) {
+                glfwSetWindowShouldClose(window, true);
             }
+        });
 
-            surface = pSurface.get(0);
+        while (!glfwContext.shouldClose()) {
+            glfwPollEvents();
+//            drawFrame();
         }
+    }
+
+    @Override
+    public void close() {
+        glfwContext.close();
+        vulkanContext.close();
     }
 }

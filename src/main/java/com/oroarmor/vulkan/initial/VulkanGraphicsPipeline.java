@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.initial;
 
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
@@ -227,14 +227,13 @@ public class VulkanGraphicsPipeline {
     }
 
     public static VkViewport.Buffer createVkViewport(MemoryStack stack) {
-        VkViewport.Buffer viewport = VkViewport.callocStack(1, stack);
-        viewport.x(0.0f)
+        return VkViewport.callocStack(1, stack)
+                .x(0.0f)
                 .y(0.0f)
                 .width(VulkanSwapChains.swapChainExtent.width())
                 .height(VulkanSwapChains.swapChainExtent.height())
                 .minDepth(0)
                 .maxDepth(1);
-        return viewport;
     }
 
     public static VkPipelineInputAssemblyStateCreateInfo createInputAssembly(MemoryStack stack) {

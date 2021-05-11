@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.initial;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -36,7 +36,7 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.*;
 
-import static com.oroarmor.vulkan.VulkanSurfaces.surface;
+import static com.oroarmor.vulkan.initial.VulkanSurfaces.surface;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFWVulkan.glfwGetRequiredInstanceExtensions;
 import static org.lwjgl.system.Configuration.DEBUG;
@@ -80,9 +80,16 @@ public class VulkanTests {
         initGLFW();
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", MemoryUtil.NULL, MemoryUtil.NULL);
         glfwSetFramebufferSizeCallback(window, VulkanTests::frameBufferResizeCallback);
+        glfwSetKeyCallback(window, VulkanTests::onKeyPressed);
         initVulkan();
         loop();
         cleanup();
+    }
+
+    private static void onKeyPressed(long window, int key, int scancode, int action, int mods) {
+        if (key == GLFW_KEY_ESCAPE) {
+            glfwSetWindowShouldClose(window, true);
+        }
     }
 
     public static void frameBufferResizeCallback(long window, int width, int height) {

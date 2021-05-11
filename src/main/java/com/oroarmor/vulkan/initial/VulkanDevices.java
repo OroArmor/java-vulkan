@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.initial;
 
 import java.nio.IntBuffer;
 import java.util.Set;
@@ -99,7 +99,6 @@ public class VulkanDevices {
             }
 
             return extensions.containsAll(VulkanDebug.DEVICE_EXTENSIONS);
-
         }
     }
 }

@@ -25,10 +25,8 @@
 package com.oroarmor.vulkan;
 
 import java.nio.LongBuffer;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import com.oroarmor.vulkan.initial.VulkanTests;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.VkAllocationCallbacks;
@@ -37,27 +35,26 @@ import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;
 import org.lwjgl.vulkan.VkInstance;
 
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
-import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 
-public class VulkanDebug {
-    public static final Set<String> DEVICE_EXTENSIONS = Stream.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME).collect(Collectors.toSet());
+public class VulkanDebug implements AutoCloseable {
+    private boolean enableDebug;
+    protected final VulkanContext context;
+    private long debugMessenger;
 
-    static int createDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT createInfo, VkAllocationCallbacks allocationCallbacks, LongBuffer pDebugMessenger) {
-        if (vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
-            return vkCreateDebugUtilsMessengerEXT(instance, createInfo, allocationCallbacks, pDebugMessenger);
-        }
-
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    public VulkanDebug(boolean enableDebug, VulkanContext context) {
+        this.enableDebug = enableDebug;
+        this.context = context;
     }
 
-    static void destroyDebugUtilsMessengerEXT(VkInstance instance, long debugMessenger, VkAllocationCallbacks allocationCallbacks) {
-        if (vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
-            vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
-        }
+    public void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo) {
+        debugCreateInfo.sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT);
+        debugCreateInfo.messageSeverity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT);
+        debugCreateInfo.messageType(VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT);
+        debugCreateInfo.pfnUserCallback(this::debugCallback);
     }
 
-    static int debugCallback(int messageSeverity, int messageType, long pCallbackData, long pUserData) {
+    protected int debugCallback(int messageSeverity, int messageType, long pCallbackData, long pUserData) {
         VkDebugUtilsMessengerCallbackDataEXT callbackData = VkDebugUtilsMessengerCallbackDataEXT.create(pCallbackData);
         if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
             System.err.println("Validation layer: " + callbackData.pMessageString());
@@ -65,30 +62,43 @@ public class VulkanDebug {
         return VK_FALSE;
     }
 
-    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo) {
-        debugCreateInfo.sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT);
-        debugCreateInfo.messageSeverity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT);
-        debugCreateInfo.messageType(VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT);
-        debugCreateInfo.pfnUserCallback(VulkanDebug::debugCallback);
-    }
-
-    static void setupDebugMessenger() {
-        if (!VulkanTests.ENABLE_VALIDATION_LAYERS) {
+    public void setupDebugMessenger() {
+        if (!enableDebug) {
             return;
         }
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VkDebugUtilsMessengerCreateInfoEXT createInfo = VkDebugUtilsMessengerCreateInfoEXT.callocStack(stack);
-
             populateDebugMessengerCreateInfo(createInfo);
 
             LongBuffer pDebugMessenger = stack.longs(VK_NULL_HANDLE);
-
-            if (createDebugUtilsMessengerEXT(VulkanTests.instance, createInfo, null, pDebugMessenger) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to set up debug messenger");
-            }
-
-            VulkanTests.debugMessenger = pDebugMessenger.get(0);
+            VulkanUtil.checkVulkanResult(createDebugUtilsMessengerEXT(VulkanTests.instance, createInfo, null, pDebugMessenger), "Failed to set up debug messenger");
+            debugMessenger = pDebugMessenger.get(0);
         }
+    }
+
+    protected void destroyDebugUtilsMessengerEXT(VkInstance instance, long debugMessenger, VkAllocationCallbacks allocationCallbacks) {
+        if (vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
+            vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
+        }
+    }
+
+    protected int createDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT createInfo, VkAllocationCallbacks allocationCallbacks, LongBuffer pDebugMessenger) {
+        if (vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
+            return vkCreateDebugUtilsMessengerEXT(instance, createInfo, allocationCallbacks, pDebugMessenger);
+        }
+
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+
+    @Override
+    public void close() {
+        if (enableDebug) {
+           destroyDebugUtilsMessengerEXT(context.getVulkanInstance().getInstance(), debugMessenger, null);
+        }
+    }
+
+    public boolean isDebugEnabled() {
+        return enableDebug;
     }
 }
