@@ -35,25 +35,23 @@ import static org.lwjgl.vulkan.VK10.*;
 
 public class VulkanInstance implements AutoCloseable {
     protected final VkInstance instance;
-    protected final VulkanValidationLayers validationLayers;
     protected final String name;
     protected final String engineName;
     protected final VulkanContext context;
 
-    public VulkanInstance(VulkanValidationLayers validationLayers, VulkanContext context) {
-        this("VulkanApplication", "No Engine", validationLayers, context);
+    public VulkanInstance(VulkanContext context) {
+        this("VulkanApplication", "No Engine", context);
     }
 
-    public VulkanInstance(String name, String engineName, VulkanValidationLayers validationLayers, VulkanContext context) {
-        this.validationLayers = validationLayers;
-        instance = createVulkanInstance();
+    public VulkanInstance(String name, String engineName, VulkanContext context) {
         this.name = name;
         this.engineName = engineName;
         this.context = context;
+        instance = createVulkanInstance();
     }
 
     protected VkInstance createVulkanInstance() {
-        if (validationLayers.getDebug().isDebugEnabled() && !validationLayers.checkValidationLayerSupport()) {
+        if (context.getDebug().isDebugEnabled() && !context.getValidationLayers().checkValidationLayerSupport()) {
             throw new RuntimeException("Validation Layers requested, but not available.");
         }
 
@@ -77,8 +75,8 @@ public class VulkanInstance implements AutoCloseable {
         info.pApplicationInfo(applicationInfo);
 
         PointerBuffer requiredGLFWInstanceExtensions = glfwGetRequiredInstanceExtensions();
-        info.ppEnabledExtensionNames(validationLayers.getRequiredExtensions(requiredGLFWInstanceExtensions));
-        validationLayers.addValidationLayers(info);
+        info.ppEnabledExtensionNames(context.getValidationLayers().getRequiredExtensions(requiredGLFWInstanceExtensions));
+        context.getValidationLayers().addValidationLayers(info);
 
         info.ppEnabledLayerNames(null);
         return info;

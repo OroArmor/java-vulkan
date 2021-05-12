@@ -26,10 +26,8 @@ package com.oroarmor.vulkan;
 
 import java.nio.LongBuffer;
 
-import com.oroarmor.vulkan.initial.VulkanTests;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.vulkan.VkAllocationCallbacks;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;
 import org.lwjgl.vulkan.VkInstance;
@@ -38,9 +36,9 @@ import static org.lwjgl.vulkan.EXTDebugUtils.*;
 import static org.lwjgl.vulkan.VK10.*;
 
 public class VulkanDebug implements AutoCloseable {
-    private boolean enableDebug;
     protected final VulkanContext context;
-    private long debugMessenger;
+    protected boolean enableDebug;
+    protected long debugMessenger;
 
     public VulkanDebug(boolean enableDebug, VulkanContext context) {
         this.enableDebug = enableDebug;
@@ -72,20 +70,14 @@ public class VulkanDebug implements AutoCloseable {
             populateDebugMessengerCreateInfo(createInfo);
 
             LongBuffer pDebugMessenger = stack.longs(VK_NULL_HANDLE);
-            VulkanUtil.checkVulkanResult(createDebugUtilsMessengerEXT(VulkanTests.instance, createInfo, null, pDebugMessenger), "Failed to set up debug messenger");
+            VulkanUtil.checkVulkanResult(createDebugUtilsMessengerEXT(context.getInstance().getInstance(), createInfo, pDebugMessenger), "Failed to set up debug messenger");
             debugMessenger = pDebugMessenger.get(0);
         }
     }
 
-    protected void destroyDebugUtilsMessengerEXT(VkInstance instance, long debugMessenger, VkAllocationCallbacks allocationCallbacks) {
-        if (vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
-            vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
-        }
-    }
-
-    protected int createDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT createInfo, VkAllocationCallbacks allocationCallbacks, LongBuffer pDebugMessenger) {
+    protected int createDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT createInfo, LongBuffer pDebugMessenger) {
         if (vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
-            return vkCreateDebugUtilsMessengerEXT(instance, createInfo, allocationCallbacks, pDebugMessenger);
+            return vkCreateDebugUtilsMessengerEXT(instance, createInfo, null, pDebugMessenger);
         }
 
         return VK_ERROR_EXTENSION_NOT_PRESENT;
@@ -94,7 +86,10 @@ public class VulkanDebug implements AutoCloseable {
     @Override
     public void close() {
         if (enableDebug) {
-           destroyDebugUtilsMessengerEXT(context.getVulkanInstance().getInstance(), debugMessenger, null);
+            VkInstance instance = context.getInstance().getInstance();
+            if (vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT") != MemoryUtil.NULL) {
+                vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, null);
+            }
         }
     }
 

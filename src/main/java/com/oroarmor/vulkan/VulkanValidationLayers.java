@@ -41,10 +41,10 @@ import static org.lwjgl.vulkan.VK10.vkEnumerateInstanceLayerProperties;
 public class VulkanValidationLayers {
     public static final Set<String> VALIDATION_LAYERS = Set.of("VK_LAYER_KHRONOS_validation");
 
-    protected final VulkanDebug debug;
+    protected final VulkanContext context;
 
-    public VulkanValidationLayers(VulkanDebug debug) {
-        this.debug = debug;
+    public VulkanValidationLayers(VulkanContext context) {
+        this.context = context;
     }
 
     public void addValidationLayers(VkInstanceCreateInfo info) {
@@ -52,14 +52,14 @@ public class VulkanValidationLayers {
             try(MemoryStack stack = MemoryStack.stackPush()) {
                 info.ppEnabledLayerNames(VulkanTests.asPointerBuffer(VALIDATION_LAYERS));
                 VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT.callocStack(stack);
-                debug.populateDebugMessengerCreateInfo(debugCreateInfo);
+                context.getDebug().populateDebugMessengerCreateInfo(debugCreateInfo);
                 info.pNext(debugCreateInfo.address());
             }
         }
     }
 
     public PointerBuffer getRequiredExtensions(PointerBuffer requiredGLFWExtensions) {
-        if (debug.isDebugEnabled()) {
+        if (context.getDebug().isDebugEnabled()) {
             MemoryStack stack = MemoryStack.stackGet();
 
             PointerBuffer extensions = stack.mallocPointer(requiredGLFWExtensions.capacity() + 1);
@@ -82,9 +82,5 @@ public class VulkanValidationLayers {
             Set<String> availableLayerNames = availableLayers.stream().map(VkLayerProperties::layerNameString).collect(Collectors.toSet());
             return availableLayerNames.containsAll(VALIDATION_LAYERS);
         }
-    }
-
-    public VulkanDebug getDebug() {
-        return debug;
     }
 }

@@ -57,7 +57,7 @@ public class VulkanTests {
     public static long window;
     public static long debugMessenger;
 
-    public static final boolean ENABLE_VALIDATION_LAYERS = DEBUG.get(false);
+    public static final boolean ENABLE_VALIDATION_LAYERS = DEBUG.get(true);
     private static boolean frameBufferResized = false;
 
     public static final float HEXAGON_RADIUS = 1;
@@ -265,7 +265,7 @@ public class VulkanTests {
         vkFreeMemory(VulkanLogicalDevices.device, VulkanVertexBuffers.indexBufferMemory, null);
 
         VulkanSemaphore.renderFinishedSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
-//        VulkanSemaphore.imageAvailableSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
+        VulkanSemaphore.imageAvailableSemaphore.forEach(l -> vkDestroySemaphore(VulkanLogicalDevices.device, l, null));
         VulkanSemaphore.inFlightFences.forEach(l -> vkDestroyFence(VulkanLogicalDevices.device, l, null));
 
         vkDestroyCommandPool(VulkanLogicalDevices.device, VulkanCommandPools.commandPool, null);

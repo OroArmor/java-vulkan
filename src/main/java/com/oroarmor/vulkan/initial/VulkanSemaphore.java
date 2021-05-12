@@ -37,7 +37,6 @@ import static org.lwjgl.vulkan.VK10.*;
 public class VulkanSemaphore {
     public static List<Long> imageAvailableSemaphore, renderFinishedSemaphore, inFlightFences, imagesInFlight;
 
-
     public static void createSemaphore() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             imageAvailableSemaphore = new ArrayList<>(VulkanTests.MAX_FRAMES_IN_FLIGHT);
@@ -67,7 +66,7 @@ public class VulkanSemaphore {
                 }
 
                 imageAvailableSemaphore.add(pImageAvailableSemaphore.get(0));
-                renderFinishedSemaphore.add(pImageAvailableSemaphore.get(0));
+                renderFinishedSemaphore.add(pRenderFinishedSemaphore.get(0));
                 inFlightFences.add(pFence.get(0));
             }
         }

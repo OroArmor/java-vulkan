@@ -53,17 +53,17 @@ public class VulkanPhysicalDevice {
     private VkPhysicalDevice pickPhysicalDevice() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer deviceCount = stack.ints(0);
-            vkEnumeratePhysicalDevices(context.getVulkanInstance().getInstance(), deviceCount, null);
+            vkEnumeratePhysicalDevices(context.getInstance().getInstance(), deviceCount, null);
 
             if (deviceCount.get(0) == 0) {
                 throw new RuntimeException("No physical devices found with vulkan support.");
             }
 
             PointerBuffer devices = stack.mallocPointer(deviceCount.get(0));
-            vkEnumeratePhysicalDevices(context.getVulkanInstance().getInstance(), deviceCount, devices);
+            vkEnumeratePhysicalDevices(context.getInstance().getInstance(), deviceCount, devices);
 
             for (int i = 0; i < devices.capacity(); i++) {
-                VkPhysicalDevice device = new VkPhysicalDevice(devices.get(i), context.getVulkanInstance().getInstance());
+                VkPhysicalDevice device = new VkPhysicalDevice(devices.get(i), context.getInstance().getInstance());
 
                 if (isDeviceSuitable(device)) {
                     return device;
@@ -104,7 +104,7 @@ public class VulkanPhysicalDevice {
                         queueFamilyIndices.graphicsFamily = i;
                     }
 
-                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, context.getVulkanSurface().getSurface(), presentSupport);
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, context.getSurface().getSurface(), presentSupport);
 
                     if (presentSupport.get(0) == VK_TRUE) {
                         queueFamilyIndices.presentFamily = i;
@@ -121,20 +121,20 @@ public class VulkanPhysicalDevice {
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 swapChainSupport = new SwapChainSupportDetails();
                 swapChainSupport.capabilities = VkSurfaceCapabilitiesKHR.mallocStack(stack);
-                vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, context.getVulkanSurface().getSurface(), swapChainSupport.capabilities);
+                vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, context.getSurface().getSurface(), swapChainSupport.capabilities);
 
                 IntBuffer count = stack.ints(0);
 
-                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, context.getVulkanSurface().getSurface(), count, null);
+                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, context.getSurface().getSurface(), count, null);
                 if (count.get(0) != 0) {
                     swapChainSupport.formats = VkSurfaceFormatKHR.mallocStack(count.get(0), stack);
-                    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, context.getVulkanSurface().getSurface(), count, swapChainSupport.formats);
+                    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, context.getSurface().getSurface(), count, swapChainSupport.formats);
                 }
 
-                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getVulkanSurface().getSurface(), count, null);
+                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getSurface().getSurface(), count, null);
                 if (count.get(0) != 0) {
                     swapChainSupport.presentModes = stack.mallocInt(count.get(0));
-                    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getVulkanSurface().getSurface(), count, swapChainSupport.presentModes);
+                    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getSurface().getSurface(), count, swapChainSupport.presentModes);
                 }
             }
         }

@@ -35,8 +35,8 @@ import static org.lwjgl.glfw.GLFW.*;
 
 public class GLFWContext implements AutoCloseable {
     private final long window;
-    private List<GLFWFramebufferSizeCallbackI> framebufferSizeCallbacks;
-    private List<GLFWKeyCallbackI> keyCallbacks;
+    private final List<GLFWFramebufferSizeCallbackI> framebufferSizeCallbacks= new ArrayList<>();
+    private final List<GLFWKeyCallbackI> keyCallbacks = new ArrayList<>();
 
     public GLFWContext(int width, int height, String name) {
         this(width, height, name, MemoryUtil.NULL, MemoryUtil.NULL);
@@ -56,18 +56,10 @@ public class GLFWContext implements AutoCloseable {
     }
 
     public void addKeyCallback(@NotNull GLFWKeyCallbackI keyCallback) {
-        if(keyCallbacks == null) {
-            keyCallbacks = new ArrayList<>();
-        }
-
         keyCallbacks.add(keyCallback);
     }
 
     public void addFramebufferSizeCallback(@NotNull GLFWFramebufferSizeCallbackI framebufferSizeCallback) {
-        if(framebufferSizeCallbacks == null) {
-            framebufferSizeCallbacks = new ArrayList<>();
-        }
-
         framebufferSizeCallbacks.add(framebufferSizeCallback);
     }
 

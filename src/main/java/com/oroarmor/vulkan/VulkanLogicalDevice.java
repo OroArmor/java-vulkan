@@ -39,8 +39,8 @@ public class VulkanLogicalDevice implements AutoCloseable {
     public VulkanLogicalDevice(VulkanContext context) {
         this.context = context;
         device = createVulkanDevice();
-        graphicsQueue = createDeviceQueue(context.getVulkanPhysicalDevice().getQueueFamilyIndices().graphicsFamily);
-        presentQueue = createDeviceQueue(context.getVulkanPhysicalDevice().getQueueFamilyIndices().presentFamily);
+        graphicsQueue = createDeviceQueue(context.getPhysicalDevice().getQueueFamilyIndices().graphicsFamily);
+        presentQueue = createDeviceQueue(context.getPhysicalDevice().getQueueFamilyIndices().presentFamily);
     }
 
     private VkQueue createDeviceQueue(Integer queueFamily) {
@@ -54,7 +54,7 @@ public class VulkanLogicalDevice implements AutoCloseable {
 
     private VkDevice createVulkanDevice() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VulkanPhysicalDevice.QueueFamilyIndices indices = context.getVulkanPhysicalDevice().getQueueFamilyIndices();
+            VulkanPhysicalDevice.QueueFamilyIndices indices = context.getPhysicalDevice().getQueueFamilyIndices();
 
             int[] uniqueQueueFamilies = indices.unique();
             VkDeviceQueueCreateInfo.Buffer deviceQueueCreateInfo = VkDeviceQueueCreateInfo.callocStack(uniqueQueueFamilies.length, stack);
@@ -76,20 +76,24 @@ public class VulkanLogicalDevice implements AutoCloseable {
 
             deviceCreateInfo.ppEnabledExtensionNames(VulkanUtil.asPointerBuffer(VulkanPhysicalDevice.DEVICE_EXTENSIONS));
 
-            if (context.getVulkanDebug().isDebugEnabled()) {
+            if (context.getDebug().isDebugEnabled()) {
                 deviceCreateInfo.ppEnabledLayerNames(VulkanUtil.asPointerBuffer(VulkanValidationLayers.VALIDATION_LAYERS));
             }
 
             PointerBuffer pDevice = stack.pointers(VK_NULL_HANDLE);
 
-            VulkanUtil.checkVulkanResult(vkCreateDevice(context.getVulkanPhysicalDevice().getPhysicalDevice(), deviceCreateInfo, null, pDevice),"Failed to create logical device.");
+            VulkanUtil.checkVulkanResult(vkCreateDevice(context.getPhysicalDevice().getPhysicalDevice(), deviceCreateInfo, null, pDevice),"Failed to create logical device.");
 
-            return new VkDevice(pDevice.get(0), context.getVulkanPhysicalDevice().getPhysicalDevice(), deviceCreateInfo);
+            return new VkDevice(pDevice.get(0), context.getPhysicalDevice().getPhysicalDevice(), deviceCreateInfo);
         }
     }
 
     @Override
     public void close() {
         vkDestroyDevice(device, null);
+    }
+
+    public VkDevice getDevice() {
+        return device;
     }
 }

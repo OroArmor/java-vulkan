@@ -24,27 +24,31 @@
 
 package com.oroarmor.vulkan;
 
-import com.oroarmor.vulkan.initial.VulkanLogicalDevices;
-
 public class VulkanContext implements AutoCloseable {
     protected final VulkanInstance instance;
     protected final VulkanDebug debug;
     protected final GLFWContext glfwContext;
     protected final VulkanSurface surface;
     protected final VulkanPhysicalDevice physicalDevice;
-    protected final VulkanLogicalDevice vulkanLogicalDevice;
+    protected final VulkanLogicalDevice logicalDevice;
+    protected final VulkanCommandPool commandPool;
+    protected final VulkanValidationLayers validationLayers;
+    protected final VulkanSemaphoreHandler semaphoreHandler;
 
     public VulkanContext(GLFWContext glfwContext) {
         this.glfwContext = glfwContext;
-        debug = new VulkanDebug(false, this);
-        instance = new VulkanInstance(new VulkanValidationLayers(debug), this);
+        debug = new VulkanDebug(true, this);
+        validationLayers = new VulkanValidationLayers(this);
+        instance = new VulkanInstance(this);
         debug.setupDebugMessenger();
         surface = new VulkanSurface(this);
         physicalDevice = new VulkanPhysicalDevice(this);
-        vulkanLogicalDevice = new VulkanLogicalDevice(this);
+        logicalDevice = new VulkanLogicalDevice(this);
+        commandPool = new VulkanCommandPool(this);
+        semaphoreHandler = new VulkanSemaphoreHandler(this);
     }
 
-    public VulkanInstance getVulkanInstance() {
+    public VulkanInstance getInstance() {
         return instance;
     }
 
@@ -54,21 +58,29 @@ public class VulkanContext implements AutoCloseable {
 
     @Override
     public void close() {
-        vulkanLogicalDevice.close();
+        logicalDevice.close();
         debug.close();
         surface.close();
         instance.close();
     }
 
-    public VulkanPhysicalDevice getVulkanPhysicalDevice() {
+    public VulkanPhysicalDevice getPhysicalDevice() {
         return physicalDevice;
     }
 
-    public VulkanSurface getVulkanSurface() {
+    public VulkanSurface getSurface() {
         return surface;
     }
 
-    public VulkanDebug getVulkanDebug() {
+    public VulkanDebug getDebug() {
         return debug;
+    }
+
+    public VulkanLogicalDevice getLogicalDevice() {
+        return logicalDevice;
+    }
+
+    public VulkanValidationLayers getValidationLayers() {
+        return validationLayers;
     }
 }
