@@ -22,13 +22,13 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.context;
 
 import java.nio.IntBuffer;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.oroarmor.vulkan.initial.VulkanTests;
+import com.oroarmor.initial.VulkanTests;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;

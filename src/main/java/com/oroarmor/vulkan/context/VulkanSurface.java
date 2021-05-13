@@ -22,22 +22,39 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.context;
 
-public class GLFWException extends RuntimeException {
-    public GLFWException() {
-        super();
+import java.nio.LongBuffer;
+
+import com.oroarmor.vulkan.VulkanUtil;
+import org.lwjgl.glfw.GLFWVulkan;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.KHRSurface;
+
+import static org.lwjgl.vulkan.VK10.VK_NULL_HANDLE;
+
+public class VulkanSurface implements AutoCloseable {
+    protected final long surface;
+    private final VulkanContext context;
+
+    public VulkanSurface(VulkanContext context) {
+        this.context = context;
+        surface = createSurface();
     }
 
-    public GLFWException(String message) {
-        super(message);
+    protected long createSurface() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            LongBuffer pSurface = stack.longs(VK_NULL_HANDLE);
+            VulkanUtil.checkVulkanResult(GLFWVulkan.glfwCreateWindowSurface(context.getInstance().getInstance(), context.getGLFWContext().getWindow(), null, pSurface), "Unable to create window surface");
+            return pSurface.get(0);
+        }
     }
 
-    public GLFWException(String message, Throwable cause) {
-        super(message, cause);
+    public long getSurface() {
+        return surface;
     }
 
-    public GLFWException(Throwable cause) {
-        super(cause);
+    public void close() {
+        KHRSurface.vkDestroySurfaceKHR(context.getInstance().getInstance(), surface, null);
     }
 }

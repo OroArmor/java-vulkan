@@ -22,13 +22,15 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.render;
 
 import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.oroarmor.vulkan.VulkanUtil;
+import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkSemaphoreCreateInfo;

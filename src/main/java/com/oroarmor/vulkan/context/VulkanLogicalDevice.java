@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.context;
 
+import com.oroarmor.vulkan.VulkanUtil;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -95,5 +96,9 @@ public class VulkanLogicalDevice implements AutoCloseable {
 
     public VkDevice getDevice() {
         return device;
+    }
+
+    public VkQueue getGraphicsQueue() {
+        return graphicsQueue;
     }
 }

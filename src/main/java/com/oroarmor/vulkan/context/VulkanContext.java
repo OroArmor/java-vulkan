@@ -22,7 +22,10 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.context;
+
+import com.oroarmor.vulkan.glfw.GLFWContext;
+import com.oroarmor.vulkan.render.VulkanSemaphoreHandler;
 
 public class VulkanContext implements AutoCloseable {
     protected final VulkanInstance instance;
@@ -58,6 +61,8 @@ public class VulkanContext implements AutoCloseable {
 
     @Override
     public void close() {
+        semaphoreHandler.close();
+        commandPool.close();
         logicalDevice.close();
         debug.close();
         surface.close();
@@ -82,5 +87,9 @@ public class VulkanContext implements AutoCloseable {
 
     public VulkanValidationLayers getValidationLayers() {
         return validationLayers;
+    }
+
+    public VulkanCommandPool getCommandPool() {
+        return commandPool;
     }
 }

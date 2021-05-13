@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.glfw;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,13 +44,14 @@ public class GLFWContext implements AutoCloseable {
 
     public GLFWContext(int width, int height, String name, long monitor, long share) {
         if(!glfwInit()) {
-            throw new GLFWException("GLFW failed to initialize.");
+            GLFWUtil.checkGLFWError("GLFW failed initialization");
         }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         window = glfwCreateWindow(width, height, name, monitor, share);
+        GLFWUtil.checkGLFWError("Create window failed");
         glfwSetFramebufferSizeCallback(window, (_window, _width, _height) -> framebufferSizeCallbacks.forEach(callback -> callback.invoke(_window, _width, _height)));
         glfwSetKeyCallback(window, (_window, _key, _scancode, _action, _mods) -> keyCallbacks.forEach(callback -> callback.invoke(_window,_key,_scancode,_action,_mods)));
     }

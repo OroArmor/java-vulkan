@@ -22,38 +22,47 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.context;
 
 import java.nio.LongBuffer;
 
-import org.lwjgl.glfw.GLFWVulkan;
+import com.oroarmor.vulkan.VulkanUtil;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.vulkan.KHRSurface;
+import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 
-import static org.lwjgl.vulkan.VK10.VK_NULL_HANDLE;
+import static org.lwjgl.vulkan.VK10.*;
 
-public class VulkanSurface implements AutoCloseable {
-    protected final long surface;
-    private final VulkanContext context;
+public class VulkanCommandPool implements AutoCloseable {
+    protected final long commandPool;
+    protected final VulkanContext context;
 
-    public VulkanSurface(VulkanContext context) {
+    public VulkanCommandPool(VulkanContext context) {
         this.context = context;
-        surface = createSurface();
+        this.commandPool = createCommandPool();
     }
 
-    protected long createSurface() {
+    protected long createCommandPool() {
+        VulkanPhysicalDevice.QueueFamilyIndices indices = context.getPhysicalDevice().getQueueFamilyIndices();
+
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            LongBuffer pSurface = stack.longs(VK_NULL_HANDLE);
-            VulkanUtil.checkVulkanResult(GLFWVulkan.glfwCreateWindowSurface(context.getInstance().getInstance(), context.getGLFWContext().getWindow(), null, pSurface), "Unable to create window surface");
-            return pSurface.get(0);
+            VkCommandPoolCreateInfo poolInfo = VkCommandPoolCreateInfo.callocStack(stack);
+            poolInfo.sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+            poolInfo.queueFamilyIndex(indices.graphicsFamily);
+            poolInfo.flags(0);
+
+            LongBuffer pCommandPool = stack.mallocLong(1);
+            VulkanUtil.checkVulkanResult(vkCreateCommandPool(context.getLogicalDevice().getDevice(), poolInfo, null, pCommandPool), "Failed to create command pool");
+
+            return pCommandPool.get(0);
         }
     }
 
-    public long getSurface() {
-        return surface;
+    public long getCommandPool() {
+        return commandPool;
     }
 
+    @Override
     public void close() {
-        KHRSurface.vkDestroySurfaceKHR(context.getInstance().getInstance(), surface, null);
+        vkDestroyCommandPool(context.getLogicalDevice().getDevice(), commandPool, null);
     }
 }

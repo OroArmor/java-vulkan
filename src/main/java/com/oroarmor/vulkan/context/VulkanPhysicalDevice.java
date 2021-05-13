@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.context;
 
 import java.nio.IntBuffer;
 import java.util.Set;
