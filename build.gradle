@@ -15,7 +15,6 @@ plugins {
     id 'maven-publish'
     id 'org.cadixdev.licenser' version '0.5.0'
     id "signing"
-    id "maven"
 }
 
 archivesBaseName = project.archives_base_name
@@ -166,58 +165,69 @@ jar {
     }
 }
 
-artifacts {
-    archives jar, sourcesJar, javadocJar
-}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+            artifact sourcesJar
+            artifact javadocJar
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            def ossrhUsername = "OroArmor"
-            def ossrhPassword = project.hasProperty("ossrhPassword") ? project.property("ossrhPassword") : System.getenv("OSSRH_PASSWORD")
-
-            beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment)
-            }
-
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
-
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
-            pom.project {
-                name 'Vulkan Java'
-                packaging 'jar'
+            pom {
+                name = 'Vulkan Java'
+                packaging = 'jar'
                 // optionally artifactId can be defined here
-                description 'A Library for LWJGL programs'
-                url 'http://github.com/OroArmor/java-vulkan'
+                description = 'A Library for LWJGL programs'
+                url = 'http://github.com/OroArmor/java-vulkan'
 
                 scm {
-                    connection 'scm:git:git://github.com/OroArmor/java-vulkan.git'
-                    developerConnection 'scm:git:ssh://github.com:OroArmor/java-vulkan.git'
-                    url 'http://github.com/OroArmor/java-vulkan'
-
+                    connection = 'scm:git:git://github.com/OroArmor/java-vulkan.git'
+                    developerConnection = 'scm:git:ssh://github.com:OroArmor/java-vulkan.git'
+                    url = 'http://github.com/OroArmor/java-vulkan'
                 }
 
                 licenses {
                     license {
-                        name 'MIT'
-                        url 'https://mit-license.org/'
+                        name = 'MIT'
+                        url = 'https://mit-license.org/'
                     }
                 }
 
                 developers {
                     developer {
-                        id 'OroArmor'
-                        name 'Eli Orona'
-                        email 'eliorona@live.com'
-                        url "oroarmor.com"
+                        id = 'OroArmor'
+                        name = 'Eli Orona'
+                        email = 'eliorona@live.com'
+                        url = "oroarmor.com"
                     }
                 }
             }
         }
+    }
+    repositories {
+        def ossrhUsername = "OroArmor"
+        def ossrhPassword = (project.hasProperty("ossrhPassword") ? project.property("ossrhPassword") : System.getenv("OSSRH_PASSWORD")) as String
+        mavenLocal()
+        maven {
+            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials(PasswordCredentials) {
+                username = ossrhUsername
+                password = ossrhPassword
+            }
+            name = "mavenCentral"
+        }
+    }
+}
+
+tasks.withType(Sign) {
+    onlyIf { project.hasProperty("sign") }
+}
+
+if (project.hasProperty("sign")) {
+    signing {
+        useGpgCmd()
+        sign publishing.publications.getByName("mavenJava")
     }
 }
 
@@ -246,26 +256,4 @@ task generateChangelog {
     def changelogs = contents.contains("----") ? contents.split("\\-\\-\\-\\-") : [contents]
     project.ext.changelog = changelogs.find { log -> log.contains("Version " + project.version + ":") }
     println project.ext.changelog
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            // add all the jars that should be included when publishing to maven
-            from components.java
-//            artifact(javadocJar) {
-//                builtBy javadocJar
-//                classifier = "javadoc"
-//            }
-//            artifact(sourcesJar) {
-//                builtBy sourcesJar
-//                classifier = "sources"
-//            }
-            artifactId = archives_base_name
-        }
-    }
-
-    repositories {
-        mavenLocal()
-    }
 }
