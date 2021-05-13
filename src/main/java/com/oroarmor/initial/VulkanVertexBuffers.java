@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan.initial;
+package com.oroarmor.initial;
 
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
@@ -143,7 +143,7 @@ public class VulkanVertexBuffers {
         }
     }
 
-        public static int findMemoryType(int typeFilter, int properties, MemoryStack stack) {
+    public static int findMemoryType(int typeFilter, int properties, MemoryStack stack) {
         VkPhysicalDeviceMemoryProperties memProperties = VkPhysicalDeviceMemoryProperties.callocStack(stack);
         vkGetPhysicalDeviceMemoryProperties(VulkanDevices.physicalDevice, memProperties);
 
@@ -194,7 +194,7 @@ public class VulkanVertexBuffers {
         uniformBuffers = new ArrayList<>(VulkanSwapChains.swapChainImages.size());
         uniformBufferMemories = new ArrayList<>(VulkanSwapChains.swapChainImages.size());
 
-        try(MemoryStack stack = MemoryStack.stackPush()) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
             LongBuffer pBuffer = stack.mallocLong(1);
             LongBuffer pBufferMemory = stack.mallocLong(1);
 

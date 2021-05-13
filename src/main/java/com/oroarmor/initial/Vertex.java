@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan.initial;
+package com.oroarmor.initial;
 
 import org.joml.Vector2f;
 import org.joml.Vector3f;

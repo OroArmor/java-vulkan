@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan.initial;
+package com.oroarmor.initial;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -36,7 +36,7 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.*;
 
-import static com.oroarmor.vulkan.initial.VulkanSurfaces.surface;
+import static com.oroarmor.initial.VulkanSurfaces.surface;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFWVulkan.glfwGetRequiredInstanceExtensions;
 import static org.lwjgl.system.Configuration.DEBUG;

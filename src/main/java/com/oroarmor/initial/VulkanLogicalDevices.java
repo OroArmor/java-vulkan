@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan.initial;
+package com.oroarmor.initial;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
