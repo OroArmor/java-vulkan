@@ -35,6 +35,10 @@ public class VulkanRenderer {
     protected final VulkanContext vulkanContext;
     protected final GLFWContext glfwContext;
 
+    protected VulkanSwapChain swapChain;
+    protected VulkanImageViews imageViews;
+    protected VulkanRenderPass renderPass;
+
     protected final List<Consumer<VulkanRenderer>> renderSteps;
 
     public VulkanRenderer(VulkanContext vulkanContext, GLFWContext glfwContext) {
@@ -50,8 +54,30 @@ public class VulkanRenderer {
     public void render() {
         this.createPipeline();
 
+        this.cleanUpPipeline();
     }
 
     private void createPipeline() {
+        swapChain = new VulkanSwapChain(vulkanContext,  this);
+        imageViews = new VulkanImageViews(vulkanContext, this);
+        renderPass = new VulkanRenderPass(vulkanContext, this);
+    }
+
+    protected void cleanUpPipeline() {
+        renderPass.close();
+        imageViews.close();
+        swapChain.close();
+    }
+
+    public VulkanSwapChain getSwapChain() {
+        return swapChain;
+    }
+
+    public VulkanRenderPass getRenderPass() {
+        return renderPass;
+    }
+
+    public VulkanImageViews getImageViews() {
+        return imageViews;
     }
 }

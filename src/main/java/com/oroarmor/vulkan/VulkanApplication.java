@@ -77,11 +77,11 @@ public class VulkanApplication implements AutoCloseable {
         });
 
         VulkanBuffer vertexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_2F, false)).push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_3F, false)), Arrays.asList(VERTICES), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        VulkanBuffer indexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.INTEGER, false)), Arrays.stream(INDICES).boxed().map(CopyableMemory.CopyableInteger::new).collect(Collectors.toList()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        VulkanBuffer indexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.INTEGER, false)), Arrays.stream(INDICES).boxed().map(Integer::shortValue).map(CopyableMemory.CopyableShort::new).collect(Collectors.toList()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
         while (!glfwContext.shouldClose()) {
             glfwPollEvents();
-//            drawFrame();
+            vulkanRenderer.render();
         }
 
         vertexBuffer.close();
@@ -141,6 +141,11 @@ public class VulkanApplication implements AutoCloseable {
             buffer.putFloat(color.x());
             buffer.putFloat(color.y());
             buffer.putFloat(color.z());
+        }
+
+        @Override
+        public int sizeof() {
+            return SIZEOF;
         }
     }
 }

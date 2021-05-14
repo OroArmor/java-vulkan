@@ -25,6 +25,8 @@
 package com.oroarmor.vulkan.context;
 
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -80,7 +82,7 @@ public class VulkanPhysicalDevice {
 
         if (extensionsSupported) {
             SwapChainSupportDetails swapChainSupport = getSwapChainSupport(physicalDevice);
-            swapChainAdequate = swapChainSupport.formats.hasRemaining() && swapChainSupport.presentModes.hasRemaining();
+            swapChainAdequate = swapChainSupport.formats.hasRemaining() && swapChainSupport.presentModes.get(swapChainSupport.presentModes.size() - 1) == 0;
         }
 
         return findQueueFamilies(physicalDevice).isComplete() && extensionsSupported && swapChainAdequate;
@@ -120,21 +122,25 @@ public class VulkanPhysicalDevice {
         if (this.swapChainSupport == null) {
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 swapChainSupport = new SwapChainSupportDetails();
-                swapChainSupport.capabilities = VkSurfaceCapabilitiesKHR.mallocStack(stack);
+                swapChainSupport.capabilities = VkSurfaceCapabilitiesKHR.create();
                 vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, context.getSurface().getSurface(), swapChainSupport.capabilities);
 
                 IntBuffer count = stack.ints(0);
 
                 vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, context.getSurface().getSurface(), count, null);
                 if (count.get(0) != 0) {
-                    swapChainSupport.formats = VkSurfaceFormatKHR.mallocStack(count.get(0), stack);
+                    swapChainSupport.formats = VkSurfaceFormatKHR.create(count.get(0));
                     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, context.getSurface().getSurface(), count, swapChainSupport.formats);
                 }
 
                 vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getSurface().getSurface(), count, null);
                 if (count.get(0) != 0) {
-                    swapChainSupport.presentModes = stack.mallocInt(count.get(0));
-                    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getSurface().getSurface(), count, swapChainSupport.presentModes);
+                    IntBuffer presentModes = stack.mallocInt(count.get(0));
+                    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, context.getSurface().getSurface(), count, presentModes);
+                    swapChainSupport.presentModes = new ArrayList<>();
+                    for(int i = 0; i< presentModes.capacity(); i++){
+                        swapChainSupport.presentModes.add(presentModes.get(i));
+                    }
                 }
             }
         }
@@ -173,10 +179,14 @@ public class VulkanPhysicalDevice {
         return physicalDevice;
     }
 
+    public SwapChainSupportDetails getSwapChainSupport() {
+        return swapChainSupport;
+    }
+
     public static class SwapChainSupportDetails {
         public VkSurfaceCapabilitiesKHR capabilities;
         public VkSurfaceFormatKHR.Buffer formats;
-        public IntBuffer presentModes;
+        public List<Integer> presentModes;
     }
 
     public static class QueueFamilyIndices {

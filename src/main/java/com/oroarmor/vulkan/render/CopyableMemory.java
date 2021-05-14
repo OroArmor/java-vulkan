@@ -29,16 +29,23 @@ import java.nio.ByteBuffer;
 public interface CopyableMemory {
     void memCopy(ByteBuffer buffer);
 
-    class CopyableInteger implements CopyableMemory {
-        private final int value;
+    int sizeof();
 
-        public CopyableInteger(int value) {
+    class CopyableShort implements CopyableMemory {
+        private final short value;
+
+        public CopyableShort(short value) {
             this.value = value;
         }
 
         @Override
         public void memCopy(ByteBuffer buffer) {
-            buffer.putShort((short) value);
+            buffer.putShort(value);
+        }
+
+        @Override
+        public int sizeof() {
+            return Short.BYTES;
         }
     }
 }

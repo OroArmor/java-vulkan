@@ -24,12 +24,15 @@
 
 package com.oroarmor.vulkan.glfw;
 
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import static org.lwjgl.glfw.GLFW.*;
 
@@ -75,5 +78,14 @@ public class GLFWContext implements AutoCloseable {
 
     public boolean shouldClose() {
         return glfwWindowShouldClose(window);
+    }
+
+    public Vector2i getScreenSize() {
+        try(MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer width = stack.ints(0);
+            IntBuffer height = stack.ints(0);
+            glfwGetWindowSize(window, width, height);
+            return new Vector2i(width.get(0), height.get(0));
+        }
     }
 }

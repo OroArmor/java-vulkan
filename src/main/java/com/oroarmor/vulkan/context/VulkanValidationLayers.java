@@ -28,7 +28,7 @@ import java.nio.IntBuffer;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.oroarmor.initial.VulkanTests;
+import com.oroarmor.vulkan.VulkanUtil;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;
@@ -48,9 +48,9 @@ public class VulkanValidationLayers {
     }
 
     public void addValidationLayers(VkInstanceCreateInfo info) {
-        if (VulkanTests.ENABLE_VALIDATION_LAYERS) {
+        if (context.getDebug().isDebugEnabled()) {
             try(MemoryStack stack = MemoryStack.stackPush()) {
-                info.ppEnabledLayerNames(VulkanTests.asPointerBuffer(VALIDATION_LAYERS));
+                info.ppEnabledLayerNames(VulkanUtil.asPointerBuffer(VALIDATION_LAYERS));
                 VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT.callocStack(stack);
                 context.getDebug().populateDebugMessengerCreateInfo(debugCreateInfo);
                 info.pNext(debugCreateInfo.address());

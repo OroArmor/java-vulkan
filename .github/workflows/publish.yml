@@ -1,4 +1,4 @@
-name: Publish java-vulkans to external sites
+name: Publish java-vulkan to external sites
 
 on:
   workflow_dispatch:
