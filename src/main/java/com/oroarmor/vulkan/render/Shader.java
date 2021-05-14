@@ -30,16 +30,18 @@ import java.nio.LongBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.oroarmor.initial.VulkanLogicalDevices;
+import com.oroarmor.vulkan.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
+import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkShaderModuleCreateInfo;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
@@ -92,9 +94,7 @@ public class Shader implements AutoCloseable {
                 shaderModuleCreateInfo.pCode(spirv.bytecode);
 
                 LongBuffer pShader = stack.mallocLong(1);
-                if (vkCreateShaderModule(context.getLogicalDevice().getDevice(), shaderModuleCreateInfo, null, pShader) != VK_SUCCESS) {
-                    throw new RuntimeException("Could not create shader!");
-                }
+                VulkanUtil.checkVulkanResult(vkCreateShaderModule(context.getLogicalDevice().getDevice(), shaderModuleCreateInfo, null, pShader), "Could not create shader");
                 stageToModule.put(stage, pShader.get(0));
             });
         }
@@ -102,7 +102,7 @@ public class Shader implements AutoCloseable {
 
     protected void compileStages() {
         stageToSource.forEach((stage, source) -> {
-            long result = shaderc_compile_into_spv(compiler, source, stage.kind, shaderFile, "main", MemoryUtil.NULL);
+            long result = shaderc_compile_into_spv(compiler, source, stage.shaderc_kind, shaderFile, "main", MemoryUtil.NULL);
 
             if (result == MemoryUtil.NULL) {
                 throw new RuntimeException("Failed to compile shader " + shaderFile + " into SPIR-V");
@@ -148,6 +148,24 @@ public class Shader implements AutoCloseable {
         return stageToModule;
     }
 
+    public VkPipelineShaderStageCreateInfo.Buffer createShaderStages() {
+        MemoryStack stack = MemoryStack.stackGet();
+        VkPipelineShaderStageCreateInfo.Buffer shaderStages = VkPipelineShaderStageCreateInfo.callocStack(stageToModule.size(), stack);
+        Iterator<Map.Entry<Stage, Long>> iterator = stageToModule.entrySet().iterator();
+        for(int i = 0; i < stageToModule.size(); i++) {
+            Map.Entry<Stage, Long> entry = iterator.next();
+            getVkPipelineShaderStageCreateInfo(entry.getValue(), entry.getKey(), shaderStages.get(i), stack.UTF8Safe("main"));
+        }
+        return shaderStages;
+    }
+
+    protected void getVkPipelineShaderStageCreateInfo(long module, Stage stage, VkPipelineShaderStageCreateInfo shaderStageInfo, ByteBuffer entrypoint) {
+        shaderStageInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
+        shaderStageInfo.stage(stage.vulkanShaderStage);
+        shaderStageInfo.module(module);
+        shaderStageInfo.pName(entrypoint);
+    }
+
     @Override
     public void close() {
         stageToCompiled.values().forEach(SPIRV::free);
@@ -155,14 +173,16 @@ public class Shader implements AutoCloseable {
     }
 
     public enum Stage {
-        VERTEX_SHADER(shaderc_glsl_vertex_shader),
-        GEOMETRY_SHADER(shaderc_glsl_geometry_shader),
-        FRAGMENT_SHADER(shaderc_glsl_fragment_shader);
+        VERTEX_SHADER(shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT),
+        GEOMETRY_SHADER(shaderc_glsl_geometry_shader, VK_SHADER_STAGE_GEOMETRY_BIT),
+        FRAGMENT_SHADER(shaderc_glsl_fragment_shader, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        private final int kind;
+        private final int shaderc_kind;
+        private final int vulkanShaderStage;
 
-        Stage(int kind) {
-            this.kind = kind;
+        Stage(int kind, int vulkanShaderStage) {
+            this.shaderc_kind = kind;
+            this.vulkanShaderStage = vulkanShaderStage;
         }
     }
 
