@@ -28,13 +28,10 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import com.oroarmor.vulkan.render.BufferLayout;
+import com.oroarmor.vulkan.render.*;
 import com.oroarmor.vulkan.render.BufferLayout.BufferElement.CommonBufferElement;
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
-import com.oroarmor.vulkan.render.CopyableMemory;
-import com.oroarmor.vulkan.render.VulkanBuffer;
-import com.oroarmor.vulkan.render.VulkanRenderer;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
@@ -79,6 +76,8 @@ public class VulkanApplication implements AutoCloseable {
         VulkanBuffer vertexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_2F, false)).push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_3F, false)), Arrays.asList(VERTICES), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         VulkanBuffer indexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.INTEGER, false)), Arrays.stream(INDICES).boxed().map(Integer::shortValue).map(CopyableMemory.CopyableShort::new).collect(Collectors.toList()), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
+        Shader shader = new Shader(vulkanContext, vulkanRenderer, "com/oroarmor/vulkan/vulkan_shader.glsl");
+
         while (!glfwContext.shouldClose()) {
             glfwPollEvents();
             vulkanRenderer.render();
@@ -86,6 +85,7 @@ public class VulkanApplication implements AutoCloseable {
 
         vertexBuffer.close();
         indexBuffer.close();
+        shader.close();
     }
 
     @Override
