@@ -25,9 +25,11 @@
 package com.oroarmor.vulkan.render;
 
 import java.net.URI;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -117,30 +119,38 @@ public class Shader implements AutoCloseable {
     }
 
     protected void parseSourceFile() {
-        try {
-            String externalUrlToSource = Objects.requireNonNull(getSystemClassLoader().getResource(shaderFile)).toExternalForm();
-            String source = new String(Files.readAllBytes(Paths.get(new URI(externalUrlToSource))));
-            while (source.contains("#stage")) {
-                int startStage = source.indexOf("#stage");
-                int endStage = source.indexOf("#stage", startStage + 1) - 1;
-                if (endStage < 0) {
-                    endStage = source.length();
-                }
-                String stageSource = source.substring(startStage, endStage);
-
-                Pattern p = Pattern.compile("#stage (\\w*)");
-                Matcher m = p.matcher(stageSource);
-                if (!m.find()) {
-                    throw new RuntimeException("Unable to find stage from shader.");
-                }
-                String stageType = m.group(1);
-                Stage stage = Stage.valueOf(stageType);
-                stageToSource.put(stage, stageSource.replace(m.group(), ""));
-                source = source.substring(endStage);
+        String source = getSource();
+        while (source.contains("#stage")) {
+            int startStage = source.indexOf("#stage");
+            int endStage = source.indexOf("#stage", startStage + 1) - 1;
+            if (endStage < 0) {
+                endStage = source.length();
             }
+            String stageSource = source.substring(startStage, endStage);
 
+            Pattern pattern = Pattern.compile("#stage (\\w*)");
+            Matcher matcher = pattern.matcher(stageSource);
+            if (!matcher.find()) {
+                throw new RuntimeException("Unable to find stage from shader section\n" + stageSource);
+            }
+            String stageType = matcher.group(1);
+            Stage stage = Stage.valueOf(stageType);
+            stageToSource.put(stage, stageSource.replace(matcher.group(), ""));
+            source = source.substring(endStage);
+        }
+    }
+
+    protected String getSource() {
+        try {
+            URL resource = getSystemClassLoader().getResource(shaderFile);
+            Objects.requireNonNull(resource);
+            String externalPath = resource.toExternalForm();
+            URI uri = new URI(externalPath);
+            Path path = Paths.get(uri);
+            byte[] bytes = Files.readAllBytes(path);
+            return new String(bytes);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unable to find shader file " + shaderFile, e);
         }
     }
 
@@ -152,7 +162,7 @@ public class Shader implements AutoCloseable {
         MemoryStack stack = MemoryStack.stackGet();
         VkPipelineShaderStageCreateInfo.Buffer shaderStages = VkPipelineShaderStageCreateInfo.callocStack(stageToModule.size(), stack);
         Iterator<Map.Entry<Stage, Long>> iterator = stageToModule.entrySet().iterator();
-        for(int i = 0; i < stageToModule.size(); i++) {
+        for (int i = 0; i < stageToModule.size(); i++) {
             Map.Entry<Stage, Long> entry = iterator.next();
             getVkPipelineShaderStageCreateInfo(entry.getValue(), entry.getKey(), shaderStages.get(i), stack.UTF8Safe("main"));
         }
