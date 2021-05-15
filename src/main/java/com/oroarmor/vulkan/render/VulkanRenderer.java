@@ -52,18 +52,18 @@ public class VulkanRenderer {
     }
 
     public void render() {
-        this.createPipeline();
+        this.createRenderContext();
 
-        this.cleanUpPipeline();
+        this.cleanUpRenderContext();
     }
 
-    private void createPipeline() {
+    private void createRenderContext() {
         swapChain = new VulkanSwapChain(vulkanContext,  this);
         imageViews = new VulkanImageViews(vulkanContext, this);
         renderPass = new VulkanRenderPass(vulkanContext, this);
     }
 
-    protected void cleanUpPipeline() {
+    protected void cleanUpRenderContext() {
         renderPass.close();
         imageViews.close();
         swapChain.close();
