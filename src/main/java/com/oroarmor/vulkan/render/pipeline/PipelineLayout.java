@@ -24,5 +24,15 @@
 
 package com.oroarmor.vulkan.render.pipeline;
 
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkPipelineLayoutCreateInfo;
+
 public class PipelineLayout {
+    public VkPipelineLayoutCreateInfo createPipelineLayout(MemoryStack stack) {
+        return null;
+    }
+
+    public long getLayout() {
+        return 0;
+    }
 }

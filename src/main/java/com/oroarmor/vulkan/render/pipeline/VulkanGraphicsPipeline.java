@@ -24,40 +24,114 @@
 
 package com.oroarmor.vulkan.render.pipeline;
 
+import java.nio.LongBuffer;
+
+import com.oroarmor.vulkan.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.render.Shader;
 import com.oroarmor.vulkan.render.VulkanRenderer;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.*;
 
-public class VulkanGraphicsPipeline {
+import static org.lwjgl.vulkan.VK10.*;
+
+public class VulkanGraphicsPipeline implements AutoCloseable {
     protected final VulkanContext context;
     protected final VulkanRenderer renderer;
 
     protected Shader shader;
-    protected VertexInputInfo vertexInputInfo;
-    protected InputAssembly inputAssembly;
+    protected InputAssembly inputAssembly = InputAssembly.getDefaultInputAssembly();
     protected Viewport viewport;
     protected Scissor scissor;
-    protected ViewportState viewportState;
-    protected Rasterizer rasterizer;
-    protected Multisampler multisampler;
+    protected Rasterizer rasterizer = Rasterizer.getDefaultRasterizer();
+    protected Multisampler multisampler = Multisampler.getDefaultMultisampler();
     protected ColorBlender colorBlender = ColorBlender.getDefaultColorBlender();
-    protected PipelineLayout pipelineLayout;
 
     protected boolean changed = false;
     protected long graphicsPipeline;
+    protected long pipelineLayout;
 
     public VulkanGraphicsPipeline(VulkanContext context, VulkanRenderer renderer) {
         this.context = context;
         this.renderer = renderer;
+        scissor = Scissor.getDefaultScissor(this.renderer);
+        viewport = Viewport.getDefaultViewport(this.renderer);
     }
 
     public void rebuildIfNeeded() {
-        if(changed) {
+        if (changed) {
             graphicsPipeline = createGraphicsPipeline();
         }
     }
 
     protected long createGraphicsPipeline() {
-        return 0;
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            VkPipelineShaderStageCreateInfo.Buffer shaderStages = shader.createShaderStages(stack);
+
+            VkPipelineVertexInputStateCreateInfo vertexInputInfo = this.shader.getVertexInput().createVertexInputState(stack);
+
+            VkPipelineInputAssemblyStateCreateInfo inputAssembly = this.inputAssembly.createInputAssembly(stack);
+
+            VkViewport.Buffer viewport = this.viewport.createVkViewport(stack);
+            VkRect2D.Buffer scissor = this.scissor.createVkRect2D(stack);
+
+            VkPipelineViewportStateCreateInfo viewportState = VkPipelineViewportStateCreateInfo.callocStack(stack);
+            viewportState.sType(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO);
+            viewportState.pViewports(viewport);
+            viewportState.pScissors(scissor);
+
+            VkPipelineRasterizationStateCreateInfo rasterizer = this.rasterizer.createRasterizer(stack);
+            VkPipelineMultisampleStateCreateInfo multisampling = this.multisampler.createMultisampler(stack);
+            VkPipelineColorBlendStateCreateInfo colorBlending = this.colorBlender.createColorBlendState(stack);
+
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo = createPipelineLayout(stack);
+
+            VkGraphicsPipelineCreateInfo.Buffer pipelineInfo = createGraphicsPipelineInfo(stack, shaderStages, vertexInputInfo, inputAssembly, viewportState, rasterizer, multisampling, colorBlending);
+
+            LongBuffer pGraphicsPipeline = stack.mallocLong(1);
+
+            VulkanUtil.checkVulkanResult(vkCreateGraphicsPipelines(context.getLogicalDevice().getDevice(), VK_NULL_HANDLE, pipelineInfo, null, pGraphicsPipeline), "Failed to create graphics pipeline!");
+
+            return pGraphicsPipeline.get(0);
+        }
+    }
+
+    private VkPipelineLayoutCreateInfo createPipelineLayout(MemoryStack stack) {
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = VkPipelineLayoutCreateInfo.callocStack(stack);
+        pipelineLayoutInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
+//        pipelineLayoutInfo.pSetLayouts(stack.longs(VulkanDescriptorSets.descriptorSetLayout));
+
+        LongBuffer pLayoutInfo = stack.longs(VK_NULL_HANDLE);
+
+        VulkanUtil.checkVulkanResult(vkCreatePipelineLayout(context.getLogicalDevice().getDevice(), pipelineLayoutInfo, null, pLayoutInfo), "Unable to create pipeline layout.");
+
+        pipelineLayout = pLayoutInfo.get(0);
+        return pipelineLayoutInfo;
+    }
+
+    protected VkGraphicsPipelineCreateInfo.Buffer createGraphicsPipelineInfo(MemoryStack stack, VkPipelineShaderStageCreateInfo.Buffer shaderStages, VkPipelineVertexInputStateCreateInfo vertexInputInfo, VkPipelineInputAssemblyStateCreateInfo inputAssembly, VkPipelineViewportStateCreateInfo viewportState, VkPipelineRasterizationStateCreateInfo rasterizer, VkPipelineMultisampleStateCreateInfo multisampling, VkPipelineColorBlendStateCreateInfo colorBlending) {
+        VkGraphicsPipelineCreateInfo.Buffer pipelineInfo = VkGraphicsPipelineCreateInfo.callocStack(1, stack);
+
+        pipelineInfo.sType(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
+        pipelineInfo.pStages(shaderStages);
+
+        pipelineInfo.pVertexInputState(vertexInputInfo);
+        pipelineInfo.pInputAssemblyState(inputAssembly);
+        pipelineInfo.pViewportState(viewportState);
+        pipelineInfo.pRasterizationState(rasterizer);
+        pipelineInfo.pMultisampleState(multisampling);
+        pipelineInfo.pColorBlendState(colorBlending);
+
+        pipelineInfo.layout(this.pipelineLayout);
+        pipelineInfo.renderPass(this.renderer.getRenderPass().getRenderPass());
+        pipelineInfo.subpass(0);
+        pipelineInfo.basePipelineHandle(VK_NULL_HANDLE);
+        pipelineInfo.basePipelineIndex(-1);
+        return pipelineInfo;
+    }
+
+    public void close() {
+        vkDestroyPipeline(context.getLogicalDevice().getDevice(), graphicsPipeline, null);
+        vkDestroyPipelineLayout(context.getLogicalDevice().getDevice(), pipelineLayout, null);
     }
 }

@@ -31,10 +31,7 @@ import java.nio.LongBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,8 +40,7 @@ import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
-import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
-import org.lwjgl.vulkan.VkShaderModuleCreateInfo;
+import org.lwjgl.vulkan.*;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.lwjgl.util.shaderc.Shaderc.*;
@@ -65,14 +61,16 @@ public class Shader implements AutoCloseable {
     protected final VulkanRenderer renderer;
 
     protected final String shaderFile;
+    protected final VertexInput inputTemplate;
     protected final Map<Stage, String> stageToSource;
     protected final Map<Stage, SPIRV> stageToCompiled;
     protected final Map<Stage, Long> stageToModule;
 
-    public Shader(VulkanContext context, VulkanRenderer renderer, String shaderFile) {
+    public Shader(VulkanContext context, VulkanRenderer renderer, String shaderFile, VertexInput inputTemplate) {
         this.context = context;
         this.renderer = renderer;
         this.shaderFile = shaderFile;
+        this.inputTemplate = inputTemplate;
         stageToSource = new HashMap<>();
         stageToCompiled = new HashMap<>();
         stageToModule = new HashMap<>();
@@ -104,7 +102,7 @@ public class Shader implements AutoCloseable {
 
     protected void compileStages() {
         stageToSource.forEach((stage, source) -> {
-            long result = shaderc_compile_into_spv(compiler, source, stage.shaderc_kind, shaderFile, "main", MemoryUtil.NULL);
+            long result = shaderc_compile_into_spv(compiler, source, stage.getShaderc_kind(), shaderFile, "main", MemoryUtil.NULL);
 
             if (result == MemoryUtil.NULL) {
                 throw new RuntimeException("Failed to compile shader " + shaderFile + " into SPIR-V");
@@ -158,8 +156,7 @@ public class Shader implements AutoCloseable {
         return stageToModule;
     }
 
-    public VkPipelineShaderStageCreateInfo.Buffer createShaderStages() {
-        MemoryStack stack = MemoryStack.stackGet();
+    public VkPipelineShaderStageCreateInfo.Buffer createShaderStages(MemoryStack stack) {
         VkPipelineShaderStageCreateInfo.Buffer shaderStages = VkPipelineShaderStageCreateInfo.callocStack(stageToModule.size(), stack);
         Iterator<Map.Entry<Stage, Long>> iterator = stageToModule.entrySet().iterator();
         for (int i = 0; i < stageToModule.size(); i++) {
@@ -169,9 +166,13 @@ public class Shader implements AutoCloseable {
         return shaderStages;
     }
 
+    public VertexInput getVertexInput() {
+        return inputTemplate;
+    }
+
     protected void getVkPipelineShaderStageCreateInfo(long module, Stage stage, VkPipelineShaderStageCreateInfo shaderStageInfo, ByteBuffer entrypoint) {
         shaderStageInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
-        shaderStageInfo.stage(stage.vulkanShaderStage);
+        shaderStageInfo.stage(stage.getVulkanShaderStage());
         shaderStageInfo.module(module);
         shaderStageInfo.pName(entrypoint);
     }
@@ -194,12 +195,60 @@ public class Shader implements AutoCloseable {
             this.shaderc_kind = kind;
             this.vulkanShaderStage = vulkanShaderStage;
         }
+
+        public int getShaderc_kind() {
+            return shaderc_kind;
+        }
+
+        public int getVulkanShaderStage() {
+            return vulkanShaderStage;
+        }
     }
 
     protected static record SPIRV(long handle, ByteBuffer bytecode) implements NativeResource {
         @Override
         public void free() {
             shaderc_result_release(handle);
+        }
+    }
+
+    public interface VertexInput extends CopyableMemory {
+        default VkVertexInputBindingDescription.Buffer getBindingDescription() {
+            VkVertexInputBindingDescription.Buffer bindingDescription = VkVertexInputBindingDescription.callocStack(1);
+            bindingDescription.binding(0);
+            bindingDescription.stride(this.sizeof());
+            bindingDescription.inputRate(VK_VERTEX_INPUT_RATE_VERTEX);
+            return bindingDescription;
+        }
+        default VkVertexInputAttributeDescription.Buffer getAttributeDescriptions(){
+            List<BufferLayout.BufferElement> elements = getLayout().getBufferElements();
+            VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.create(elements.size());
+
+            for(BufferLayout.BufferElement element : elements) {
+                VkVertexInputAttributeDescription positionAttribute = attributeDescriptions.get(0);
+                positionAttribute.binding(0).location(0);
+                positionAttribute.format(getFormat(element.size().getSize()));
+                positionAttribute.offset(getLayout().getOffset(element));
+            }
+
+            return attributeDescriptions.rewind();
+        }
+        BufferLayout getLayout();
+
+        private static int getFormat(int size) {
+            return switch (size) {
+                case (2 * Float.BYTES) -> VK_FORMAT_R32G32_UINT;
+                case (3 * Float.BYTES) -> VK_FORMAT_R32G32B32_UINT;
+                default -> VK_FORMAT_UNDEFINED;
+            };
+        }
+
+        default VkPipelineVertexInputStateCreateInfo createVertexInputState(MemoryStack stack) {
+            VkPipelineVertexInputStateCreateInfo vertexInputInfo = VkPipelineVertexInputStateCreateInfo.callocStack(stack);
+            vertexInputInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
+            vertexInputInfo.pVertexBindingDescriptions(getBindingDescription());
+            vertexInputInfo.pVertexAttributeDescriptions(getAttributeDescriptions());
+            return vertexInputInfo;
         }
     }
 }

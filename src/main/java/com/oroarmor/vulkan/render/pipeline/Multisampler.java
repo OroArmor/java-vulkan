@@ -24,5 +24,34 @@
 
 package com.oroarmor.vulkan.render.pipeline;
 
-public class Multisampler {
+
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkPipelineMultisampleStateCreateInfo;
+
+import static org.lwjgl.vulkan.VK10.*;
+
+public record Multisampler(SampleCount count) {
+    public VkPipelineMultisampleStateCreateInfo createMultisampler(MemoryStack stack) {
+        VkPipelineMultisampleStateCreateInfo multisampling = VkPipelineMultisampleStateCreateInfo.callocStack(stack);
+        multisampling.sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO);
+        multisampling.sampleShadingEnable(false);
+        multisampling.rasterizationSamples(count.vkSampleCountBit);
+        return multisampling;
+    }
+
+    public enum SampleCount {
+        COUNT_1_BIT(VK_SAMPLE_COUNT_1_BIT), COUNT_2_BIT(VK_SAMPLE_COUNT_2_BIT), COUNT_4_BIT(VK_SAMPLE_COUNT_4_BIT),
+        COUNT_8_BIT(VK_SAMPLE_COUNT_8_BIT), COUNT_16_BIT(VK_SAMPLE_COUNT_16_BIT), COUNT_32_BIT(VK_SAMPLE_COUNT_32_BIT),
+        COUNT_64_BIT(VK_SAMPLE_COUNT_64_BIT);
+
+        private final int vkSampleCountBit;
+
+        SampleCount(int vkSampleCountBit) {
+            this.vkSampleCountBit = vkSampleCountBit;
+        }
+    }
+
+    public static Multisampler getDefaultMultisampler() {
+        return new Multisampler(SampleCount.COUNT_1_BIT);
+    }
 }

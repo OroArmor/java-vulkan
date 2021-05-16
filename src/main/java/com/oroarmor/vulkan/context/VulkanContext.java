@@ -26,6 +26,8 @@ package com.oroarmor.vulkan.context;
 
 import com.oroarmor.vulkan.glfw.GLFWContext;
 import com.oroarmor.vulkan.render.VulkanSemaphoreHandler;
+import com.oroarmor.vulkan.render.VulkanSwapChain;
+import javax.swing.*;
 
 public class VulkanContext implements AutoCloseable {
     protected final VulkanInstance instance;

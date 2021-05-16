@@ -25,10 +25,13 @@
 package com.oroarmor.vulkan.render;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BufferLayout {
     protected final List<BufferElement> bufferElements = new ArrayList<>();
+    protected final Map<BufferElement, Integer> offsets = new HashMap<>();
     protected int stride = 0;
 
     public List<BufferElement> getBufferElements() {
@@ -40,8 +43,13 @@ public class BufferLayout {
     }
 
     public BufferLayout push(BufferElement element) {
+        offsets.put(element, stride);
         stride += element.count * element.size.getSize();
         return this;
+    }
+
+    public int getOffset(BufferElement element) {
+        return offsets.getOrDefault(element, -1);
     }
 
     public record BufferElement(int count, Size size, boolean normalized) {

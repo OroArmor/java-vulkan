@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
+import com.oroarmor.vulkan.render.pipeline.VulkanGraphicsPipeline;
 
 public class VulkanRenderer {
     protected final VulkanContext vulkanContext;
@@ -38,6 +39,8 @@ public class VulkanRenderer {
     protected VulkanSwapChain swapChain;
     protected VulkanImageViews imageViews;
     protected VulkanRenderPass renderPass;
+
+    protected VulkanGraphicsPipeline graphicsPipeline;
 
     protected final List<Consumer<VulkanRenderer>> renderSteps;
 
@@ -53,8 +56,21 @@ public class VulkanRenderer {
 
     public void render() {
         this.createRenderContext();
-
+        this.createPipeline();
+        this.computeRenderSteps();
+        this.cleanupPipeline();
         this.cleanUpRenderContext();
+    }
+
+    private void createPipeline() {
+        this.graphicsPipeline = new VulkanGraphicsPipeline(vulkanContext, this);
+    }
+
+    private void computeRenderSteps() {
+    }
+
+    private void cleanupPipeline() {
+        graphicsPipeline.close();
     }
 
     private void createRenderContext() {
@@ -80,4 +96,6 @@ public class VulkanRenderer {
     public VulkanImageViews getImageViews() {
         return imageViews;
     }
+
+    public VulkanGraphicsPipeline getGraphicsPipeline() { return graphicsPipeline; }
 }

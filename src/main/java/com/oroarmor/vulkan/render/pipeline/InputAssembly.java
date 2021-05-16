@@ -24,5 +24,40 @@
 
 package com.oroarmor.vulkan.render.pipeline;
 
-public class InputAssembly {
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkPipelineInputAssemblyStateCreateInfo;
+
+import static org.lwjgl.vulkan.VK10.*;
+
+public record InputAssembly(TopologyType type, boolean primitiveRestart) {
+    public InputAssembly(TopologyType type) {
+        this(type, false);
+    }
+
+    public VkPipelineInputAssemblyStateCreateInfo createInputAssembly(MemoryStack stack) {
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly = VkPipelineInputAssemblyStateCreateInfo.callocStack(stack);
+        inputAssembly.sType(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO);
+        inputAssembly.topology(type.vkPrimitiveTopology);
+        inputAssembly.primitiveRestartEnable(primitiveRestart);
+        return inputAssembly;
+    }
+
+    public enum TopologyType {
+        POINT_LIST(VK_PRIMITIVE_TOPOLOGY_POINT_LIST),
+        LINE_LIST(VK_PRIMITIVE_TOPOLOGY_LINE_LIST), LINE_STRIP(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP),
+        TRIANGLE_LIST(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST), TRIANGLE_STRIP(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP), TRIANGLE_FAN(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN),
+        LINE_LIST_WITH_ADJACENCY(VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY), LINE_STRIP_WITH_ADJACENCY(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY),
+        TRIANGLE_LIST_WITH_ADJACENCY(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY), TRIANGLE_STRIP_WITH_ADJACENCY(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY),
+        PATCH_LIST(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
+
+        private final int vkPrimitiveTopology;
+
+        TopologyType(int vkPrimitiveTopology) {
+            this.vkPrimitiveTopology = vkPrimitiveTopology;
+        }
+    }
+
+    public static InputAssembly getDefaultInputAssembly() {
+        return new InputAssembly(TopologyType.TRIANGLE_LIST);
+    }
 }

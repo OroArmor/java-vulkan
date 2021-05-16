@@ -24,5 +24,22 @@
 
 package com.oroarmor.vulkan.render.pipeline;
 
-public class Scissor {
+import com.oroarmor.vulkan.render.VulkanRenderer;
+import org.joml.Vector2i;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkExtent2D;
+import org.lwjgl.vulkan.VkOffset2D;
+import org.lwjgl.vulkan.VkRect2D;
+
+public record Scissor(Vector2i offset, VkExtent2D extent) {
+    public VkRect2D.Buffer createVkRect2D(MemoryStack stack) {
+        VkRect2D.Buffer scissor = VkRect2D.create(1);
+        scissor.offset(VkOffset2D.callocStack(stack).set(offset.x, offset.y))
+                .extent(extent);
+        return scissor;
+    }
+
+    public static Scissor getDefaultScissor(VulkanRenderer renderer) {
+        return new Scissor(new Vector2i(), renderer.getSwapChain().getSwapChainExtent());
+    }
 }

@@ -24,5 +24,25 @@
 
 package com.oroarmor.vulkan.render.pipeline;
 
-public class Viewport {
+import com.oroarmor.vulkan.render.VulkanRenderer;
+import org.joml.Vector2f;
+import org.joml.Vector2i;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkExtent2D;
+import org.lwjgl.vulkan.VkViewport;
+
+public record Viewport(Vector2f position, VkExtent2D size, Vector2i depth) {
+    public VkViewport.Buffer createVkViewport(MemoryStack stack) {
+        return VkViewport.callocStack(1, stack)
+                .x(position.x)
+                .y(position.y)
+                .width(size.width())
+                .height(size.height())
+                .minDepth(depth.x)
+                .maxDepth(depth.y);
+    }
+
+    public static Viewport getDefaultViewport(VulkanRenderer renderer) {
+        return new Viewport(new Vector2f(), renderer.getSwapChain().getSwapChainExtent(), new Vector2i(0, 1));
+    }
 }
