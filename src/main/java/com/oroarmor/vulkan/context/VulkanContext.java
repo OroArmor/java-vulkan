@@ -25,6 +25,7 @@
 package com.oroarmor.vulkan.context;
 
 import com.oroarmor.vulkan.glfw.GLFWContext;
+import com.oroarmor.vulkan.render.VulkanRenderer;
 import com.oroarmor.vulkan.render.VulkanSemaphoreHandler;
 import com.oroarmor.vulkan.render.VulkanSwapChain;
 import javax.swing.*;
@@ -39,6 +40,7 @@ public class VulkanContext implements AutoCloseable {
     protected final VulkanCommandPool commandPool;
     protected final VulkanValidationLayers validationLayers;
     protected final VulkanSemaphoreHandler semaphoreHandler;
+    private VulkanRenderer renderer;
 
     public VulkanContext(GLFWContext glfwContext) {
         this.glfwContext = glfwContext;
@@ -93,5 +95,17 @@ public class VulkanContext implements AutoCloseable {
 
     public VulkanCommandPool getCommandPool() {
         return commandPool;
+    }
+
+    public VulkanSemaphoreHandler getSemaphoreHandler() {
+        return semaphoreHandler;
+    }
+
+    public void setRenderer(VulkanRenderer renderer) {
+        this.renderer = renderer;
+    }
+
+    public VulkanRenderer getAvailableRenderer() {
+        return renderer;
     }
 }

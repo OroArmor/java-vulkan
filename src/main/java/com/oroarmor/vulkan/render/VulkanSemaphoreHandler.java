@@ -38,7 +38,7 @@ import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
 import static org.lwjgl.vulkan.VK10.*;
 
 public class VulkanSemaphoreHandler implements AutoCloseable {
-    public static final int MAX_FRAMES_IN_FLIGHT = 2;
+    public static final int MAX_FRAMES_IN_FLIGHT = 5;
     protected final VulkanContext context;
     protected final List<VulkanSemaphore> semaphoreList;
     protected final List<Long> imagesInFlight;
@@ -46,23 +46,21 @@ public class VulkanSemaphoreHandler implements AutoCloseable {
     public VulkanSemaphoreHandler(VulkanContext context) {
         this.context = context;
         semaphoreList = createSemaphore();
-        imagesInFlight = createImagesInFlight();
+        imagesInFlight = new ArrayList<>();
     }
 
-    private List<Long> createImagesInFlight() {
-        int swapChainImageCount = 3; //swapChainImages.size();
-        List<Long> imagesInFlight = new ArrayList<>(swapChainImageCount);
+    public void createImagesInFlight(VulkanRenderer renderer) {
+        int swapChainImageCount = renderer.getSwapChain().getImageCount();
+        imagesInFlight.clear();
         for (int i = 0; i < swapChainImageCount; i++) {
             imagesInFlight.add(VK_NULL_HANDLE);
         }
-        return imagesInFlight;
     }
 
     protected List<VulkanSemaphore> createSemaphore() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-
             List<VulkanSemaphore.Builder> builders = new ArrayList<>(MAX_FRAMES_IN_FLIGHT);
-            for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 builders.add(new VulkanSemaphore.Builder(context));
             }
 
@@ -89,6 +87,15 @@ public class VulkanSemaphoreHandler implements AutoCloseable {
         }
     }
 
+
+    public List<VulkanSemaphore> getSemaphores() {
+        return semaphoreList;
+    }
+
+    public List<Long> getImagesInFlight() {
+        return imagesInFlight;
+    }
+
     public static class VulkanSemaphore implements AutoCloseable {
         protected final long imageAvailableSemaphore, renderFinishedSemaphore, inFlightFence;
         protected final VulkanContext context;
@@ -104,6 +111,18 @@ public class VulkanSemaphoreHandler implements AutoCloseable {
             vkDestroySemaphore(context.getLogicalDevice().getDevice(), imageAvailableSemaphore, null);
             vkDestroySemaphore(context.getLogicalDevice().getDevice(), renderFinishedSemaphore, null);
             vkDestroyFence(context.getLogicalDevice().getDevice(), inFlightFence, null);
+        }
+
+        public long getImageAvailableSemaphore() {
+            return imageAvailableSemaphore;
+        }
+
+        public long getInFlightFence() {
+            return inFlightFence;
+        }
+
+        public long getRenderFinishedSemaphore() {
+            return renderFinishedSemaphore;
         }
 
         public static class Builder {

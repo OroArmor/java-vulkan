@@ -15,6 +15,7 @@ plugins {
     id 'maven-publish'
     id 'org.cadixdev.licenser' version '0.5.0'
     id "signing"
+    id "com.github.johnrengelman.shadow" version "7.0.0"
 }
 
 archivesBaseName = project.archives_base_name
@@ -46,84 +47,21 @@ repositories {
 }
 
 dependencies {
-    api "org.lwjgl:lwjgl:$lwjglVersion"
-    api "org.lwjgl:lwjgl-assimp:$lwjglVersion"
-    api "org.lwjgl:lwjgl-bgfx:$lwjglVersion"
-    api "org.lwjgl:lwjgl-cuda:$lwjglVersion"
-    api "org.lwjgl:lwjgl-egl:$lwjglVersion"
-    api "org.lwjgl:lwjgl-glfw:$lwjglVersion"
-    api "org.lwjgl:lwjgl-jawt:$lwjglVersion"
-    api "org.lwjgl:lwjgl-jemalloc:$lwjglVersion"
-    api "org.lwjgl:lwjgl-libdivide:$lwjglVersion"
-    api "org.lwjgl:lwjgl-llvm:$lwjglVersion"
-    api "org.lwjgl:lwjgl-lmdb:$lwjglVersion"
-    api "org.lwjgl:lwjgl-lz4:$lwjglVersion"
-    api "org.lwjgl:lwjgl-meow:$lwjglVersion"
-    api "org.lwjgl:lwjgl-nanovg:$lwjglVersion"
-    api "org.lwjgl:lwjgl-nfd:$lwjglVersion"
-    api "org.lwjgl:lwjgl-nuklear:$lwjglVersion"
-    api "org.lwjgl:lwjgl-odbc:$lwjglVersion"
-    api "org.lwjgl:lwjgl-openal:$lwjglVersion"
-    api "org.lwjgl:lwjgl-opencl:$lwjglVersion"
-    api "org.lwjgl:lwjgl-opengl:$lwjglVersion"
-    api "org.lwjgl:lwjgl-opengles:$lwjglVersion"
-    api "org.lwjgl:lwjgl-openvr:$lwjglVersion"
-    api "org.lwjgl:lwjgl-opus:$lwjglVersion"
-    api "org.lwjgl:lwjgl-ovr:$lwjglVersion"
-    api "org.lwjgl:lwjgl-par:$lwjglVersion"
-    api "org.lwjgl:lwjgl-remotery:$lwjglVersion"
-    api "org.lwjgl:lwjgl-rpmalloc:$lwjglVersion"
-    api "org.lwjgl:lwjgl-shaderc:$lwjglVersion"
-    api "org.lwjgl:lwjgl-sse:$lwjglVersion"
-    api "org.lwjgl:lwjgl-stb:$lwjglVersion"
-    api "org.lwjgl:lwjgl-tinyexr:$lwjglVersion"
-    api "org.lwjgl:lwjgl-tinyfd:$lwjglVersion"
-    api "org.lwjgl:lwjgl-tootle:$lwjglVersion"
-    api "org.lwjgl:lwjgl-vma:$lwjglVersion"
-    api "org.lwjgl:lwjgl-vulkan:$lwjglVersion"
-    api "org.lwjgl:lwjgl-xxhash:$lwjglVersion"
-    api "org.lwjgl:lwjgl-yoga:$lwjglVersion"
-    api "org.lwjgl:lwjgl-zstd:$lwjglVersion"
-    runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-assimp::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-bgfx::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-glfw::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-jemalloc::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-libdivide::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-llvm::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-lmdb::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-lz4::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-meow::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-nanovg::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-nfd::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-nuklear::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-openal::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-opengl::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-opengles::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-openvr::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-opus::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-ovr::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-par::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-remotery::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-rpmalloc::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-shaderc::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-sse::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-stb::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-tinyexr::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-tinyfd::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-tootle::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-vma::$lwjglNatives"
+    shadow(api("org.lwjgl:lwjgl:$lwjglVersion"))
+    shadow(api("org.lwjgl:lwjgl-glfw:$lwjglVersion"))
+    shadow(api("org.lwjgl:lwjgl-shaderc:$lwjglVersion"))
+    shadow(api("org.lwjgl:lwjgl-vulkan:$lwjglVersion"))
+    shadow(runtimeOnly("org.lwjgl:lwjgl::$lwjglNatives"))
+    shadow(runtimeOnly("org.lwjgl:lwjgl-glfw::$lwjglNatives"))
+    shadow(runtimeOnly("org.lwjgl:lwjgl-shaderc::$lwjglNatives"))
     if (lwjglNatives == "natives-macos") runtimeOnly "org.lwjgl:lwjgl-vulkan::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-xxhash::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-yoga::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-zstd::$lwjglNatives"
-    api "org.joml:joml:${jomlVersion}"
+    shadow(api("org.joml:joml:${jomlVersion}"))
 
-    api "org.jetbrains:annotations:19.0.0"
+    shadow(api("org.jetbrains:annotations:19.0.0"))
 }
 
 run {
-    mainClassName = "com.oroarmor.vulkan.VulkanTests"
+    mainClassName = "com.oroarmor.vulkan.Main"
 }
 
 ext.changelog = ""

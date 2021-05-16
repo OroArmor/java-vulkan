@@ -149,6 +149,13 @@ public class VulkanBuffer implements AutoCloseable {
         vkFreeMemory(context.getLogicalDevice().getDevice(), buffer.bufferMemory, null);
     }
 
+    public BufferData getBufferData() {
+        return buffer;
+    }
+
+    public int getSize() {
+        return data.size();
+    }
 
     public static record BufferData(long bufferHandle, long bufferMemory) {
     }

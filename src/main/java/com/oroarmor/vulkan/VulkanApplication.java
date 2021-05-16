@@ -33,11 +33,8 @@ import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
 import com.oroarmor.vulkan.render.*;
 import com.oroarmor.vulkan.render.BufferLayout.BufferElement.CommonBufferElement;
-import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
-import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
-import org.lwjgl.vulkan.VkVertexInputBindingDescription;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.vulkan.VK10.*;
@@ -47,9 +44,9 @@ public class VulkanApplication implements AutoCloseable {
     protected final VulkanContext vulkanContext;
     protected final VulkanRenderer vulkanRenderer;
 
-    public static final float HEXAGON_RADIUS = 1;
-    public static final float HALF_RADIUS = HEXAGON_RADIUS / 2;
-    public static final float HEXAGON_HEIGHT = ((float) Math.sqrt(3) / 2) * HEXAGON_RADIUS;
+    public static final float HEXAGON_RADIUS = 1f;
+    public static final float HALF_RADIUS = HEXAGON_RADIUS / 2f;
+    public static final float HEXAGON_HEIGHT = ((float) Math.sqrt(3) / 2f) * HEXAGON_RADIUS;
     public static final Vertex[] VERTICES = {
             new Vertex(new Vector2f(0, 0), new Vector3f(1.0f, 1.0f, 1.0f)),
             new Vertex(new Vector2f(-HEXAGON_RADIUS, 0), new Vector3f(1.0f, 0.0f, 0.0f)),
@@ -82,6 +79,7 @@ public class VulkanApplication implements AutoCloseable {
 
         while (!glfwContext.shouldClose()) {
             glfwPollEvents();
+            vulkanRenderer.addRenderStep(VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer, indexBuffer));
             vulkanRenderer.render();
         }
 
@@ -91,7 +89,8 @@ public class VulkanApplication implements AutoCloseable {
     }
 
     private static List<CopyableMemory> intToIndex(int[] arr) {
-        return Arrays.stream(arr).boxed().map(Integer::shortValue).map(CopyableMemory.CopyableShort::new).collect(Collectors.toList());
+        List<CopyableMemory> indices = Arrays.stream(arr).boxed().map(CopyableMemory.IndexBufferMemory::new).collect(Collectors.toList());
+        return indices;
     }
 
     @Override
@@ -102,8 +101,6 @@ public class VulkanApplication implements AutoCloseable {
 
     public static class Vertex implements Shader.VertexInput {
         public static final int SIZEOF = (2 + 3) * Float.BYTES;
-        public static final int OFFSET_POS = 0;
-        public static final int OFFSET_COLOR = 2 * Float.BYTES;
 
         public static BufferLayout LAYOUT = new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_2F, false)).push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_3F, false));
 

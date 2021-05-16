@@ -33,6 +33,7 @@ import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
 
 public class VulkanUtil {
     public static final int UINT32_MAX = 0xFFFFFFFF;
+    public static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
 
     public static void checkVulkanResult(int result, String failDescription) {
         if (result != VK_SUCCESS) {

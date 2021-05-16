@@ -44,6 +44,7 @@ public class BufferLayout {
 
     public BufferLayout push(BufferElement element) {
         offsets.put(element, stride);
+        bufferElements.add(element);
         stride += element.count * element.size.getSize();
         return this;
     }

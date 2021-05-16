@@ -33,10 +33,9 @@ import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 
-import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-import static org.lwjgl.vulkan.VK10.vkCreateFramebuffer;
+import static org.lwjgl.vulkan.VK10.*;
 
-public class VulkanFrameBuffers {
+public class VulkanFrameBuffers implements AutoCloseable {
     protected final List<Long> frameBuffers;
     protected final VulkanContext context;
     protected final VulkanRenderer renderer;
@@ -48,7 +47,7 @@ public class VulkanFrameBuffers {
     }
 
     protected List<Long> createFrameBuffers() {
-        List<Long> frameBuffers = new ArrayList<>(com.oroarmor.initial.VulkanImageViews.swapChainImageViews.size());
+        List<Long> frameBuffers = new ArrayList<>(renderer.getImageViews().getSwapChainImageViews().size());
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
             LongBuffer imageViews = stack.mallocLong(1);
@@ -68,5 +67,13 @@ public class VulkanFrameBuffers {
             }
             return frameBuffers;
         }
+    }
+
+    public List<Long> getFrameBuffers () {
+        return frameBuffers;
+    }
+
+    public void close() {
+        frameBuffers.forEach(framebuffer -> vkDestroyFramebuffer(context.getLogicalDevice().getDevice(), framebuffer, null));
     }
 }

@@ -141,7 +141,7 @@ public class VulkanSwapChain implements AutoCloseable {
     }
 
     protected VkSurfaceFormatKHR chooseSwapSurfaceFormat() {
-        VkSurfaceFormatKHR.Buffer formats = context.getPhysicalDevice().getSwapChainSupport().formats;
+        VkSurfaceFormatKHR.Buffer formats = context.getPhysicalDevice().getSwapChainSupport().getFormats();
         return formats.stream()
                 .filter(availableFormat -> availableFormat.format() == VK_FORMAT_B8G8R8_UNORM)
                 .filter(availableFormat -> availableFormat.colorSpace() == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -190,5 +190,13 @@ public class VulkanSwapChain implements AutoCloseable {
 
     public VkExtent2D getSwapChainExtent() {
         return swapChainExtent;
+    }
+
+    public long getSwapChain() {
+        return swapChain;
+    }
+
+    public int getImageFormat() {
+        return swapChainImageFormat;
     }
 }

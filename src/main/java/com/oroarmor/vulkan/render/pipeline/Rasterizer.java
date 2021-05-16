@@ -85,6 +85,6 @@ public record Rasterizer(PolygonFillMode fillMode, float lineWidth, CullMode cul
 
 
     public static Rasterizer getDefaultRasterizer() {
-        return new Rasterizer(PolygonFillMode.FILL, CullMode.BACK_BIT, FrontFace.COUNTER_CLOCKWISE);
+        return new Rasterizer(PolygonFillMode.FILL, CullMode.NONE, FrontFace.COUNTER_CLOCKWISE);
     }
 }

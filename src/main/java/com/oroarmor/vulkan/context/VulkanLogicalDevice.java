@@ -101,4 +101,8 @@ public class VulkanLogicalDevice implements AutoCloseable {
     public VkQueue getGraphicsQueue() {
         return graphicsQueue;
     }
+
+    public VkQueue getPresentQueue() {
+        return presentQueue;
+    }
 }

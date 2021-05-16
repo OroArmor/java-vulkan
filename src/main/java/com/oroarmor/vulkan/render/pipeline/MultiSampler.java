@@ -30,7 +30,7 @@ import org.lwjgl.vulkan.VkPipelineMultisampleStateCreateInfo;
 
 import static org.lwjgl.vulkan.VK10.*;
 
-public record Multisampler(SampleCount count) {
+public record MultiSampler(SampleCount count) {
     public VkPipelineMultisampleStateCreateInfo createMultisampler(MemoryStack stack) {
         VkPipelineMultisampleStateCreateInfo multisampling = VkPipelineMultisampleStateCreateInfo.callocStack(stack);
         multisampling.sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO);
@@ -51,7 +51,7 @@ public record Multisampler(SampleCount count) {
         }
     }
 
-    public static Multisampler getDefaultMultisampler() {
-        return new Multisampler(SampleCount.COUNT_1_BIT);
+    public static MultiSampler getDefaultMultiSampler() {
+        return new MultiSampler(SampleCount.COUNT_1_BIT);
     }
 }

@@ -26,8 +26,8 @@ package com.oroarmor.vulkan;
 
 public class Main {
     public static void main(String[] args) {
-        try(VulkanApplication application = new VulkanApplication()) {
-            application.run();
-        }
+        VulkanApplication application = new VulkanApplication();
+        application.run();
+        application.close();
     }
 }

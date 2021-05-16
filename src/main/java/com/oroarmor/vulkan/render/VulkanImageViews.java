@@ -59,7 +59,7 @@ public class VulkanImageViews implements AutoCloseable {
                 createInfo.sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
                 createInfo.image(swapChainImage);
                 createInfo.viewType(VK_IMAGE_VIEW_TYPE_2D);
-                createInfo.format(renderer.getSwapChain().swapChainImageFormat);
+                createInfo.format(renderer.getSwapChain().getImageFormat());
 
                 createInfo.components().r(VK_COMPONENT_SWIZZLE_IDENTITY);
                 createInfo.components().g(VK_COMPONENT_SWIZZLE_IDENTITY);

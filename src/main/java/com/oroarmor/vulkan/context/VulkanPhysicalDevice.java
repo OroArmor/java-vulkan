@@ -187,6 +187,10 @@ public class VulkanPhysicalDevice {
         public VkSurfaceCapabilitiesKHR capabilities;
         public VkSurfaceFormatKHR.Buffer formats;
         public List<Integer> presentModes;
+
+        public VkSurfaceFormatKHR.Buffer getFormats() {
+            return formats;
+        }
     }
 
     public static class QueueFamilyIndices {

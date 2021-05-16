@@ -31,21 +31,25 @@ public interface CopyableMemory {
 
     int sizeof();
 
-    class CopyableShort implements CopyableMemory {
-        private final short value;
+    class IndexBufferMemory implements CopyableMemory {
+        private final int value;
 
-        public CopyableShort(short value) {
+        public IndexBufferMemory(int value) {
             this.value = value;
         }
 
         @Override
         public void memCopy(ByteBuffer buffer) {
-            buffer.putShort(value);
+            buffer.putInt(value);
         }
 
         @Override
         public int sizeof() {
-            return Short.BYTES;
+            return Integer.BYTES;
+        }
+
+        public String toString() {
+            return Integer.toString(value);
         }
     }
 }

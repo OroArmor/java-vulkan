@@ -24,6 +24,7 @@
 
 package com.oroarmor.vulkan.render;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -140,12 +141,7 @@ public class Shader implements AutoCloseable {
 
     protected String getSource() {
         try {
-            URL resource = getSystemClassLoader().getResource(shaderFile);
-            Objects.requireNonNull(resource);
-            String externalPath = resource.toExternalForm();
-            URI uri = new URI(externalPath);
-            Path path = Paths.get(uri);
-            byte[] bytes = Files.readAllBytes(path);
+            byte[] bytes = Objects.requireNonNull(Shader.class.getClassLoader().getResourceAsStream(shaderFile)).readAllBytes(); //Files.readAllBytes(path);
             return new String(bytes);
         } catch (Exception e) {
             throw new RuntimeException("Unable to find shader file " + shaderFile, e);
@@ -220,25 +216,28 @@ public class Shader implements AutoCloseable {
             bindingDescription.inputRate(VK_VERTEX_INPUT_RATE_VERTEX);
             return bindingDescription;
         }
+
         default VkVertexInputAttributeDescription.Buffer getAttributeDescriptions(){
             List<BufferLayout.BufferElement> elements = getLayout().getBufferElements();
             VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.create(elements.size());
 
+            int i = 0;
             for(BufferLayout.BufferElement element : elements) {
-                VkVertexInputAttributeDescription positionAttribute = attributeDescriptions.get(0);
-                positionAttribute.binding(0).location(0);
+                VkVertexInputAttributeDescription positionAttribute = attributeDescriptions.get(i);
+                positionAttribute.binding(0).location(i++);
                 positionAttribute.format(getFormat(element.size().getSize()));
                 positionAttribute.offset(getLayout().getOffset(element));
             }
 
             return attributeDescriptions.rewind();
         }
+
         BufferLayout getLayout();
 
         private static int getFormat(int size) {
             return switch (size) {
-                case (2 * Float.BYTES) -> VK_FORMAT_R32G32_UINT;
-                case (3 * Float.BYTES) -> VK_FORMAT_R32G32B32_UINT;
+                case (2 * Float.BYTES) -> VK_FORMAT_R32G32_SFLOAT;
+                case (3 * Float.BYTES) -> VK_FORMAT_R32G32B32_SFLOAT;
                 default -> VK_FORMAT_UNDEFINED;
             };
         }
