@@ -28,13 +28,13 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.oroarmor.vulkan.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
 import com.oroarmor.vulkan.render.pipeline.VulkanGraphicsPipeline;
+import com.oroarmor.vulkan.util.Profiler;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -60,10 +60,14 @@ public class VulkanRenderer {
     private boolean frameBufferResized = false;
     private int frame;
 
+    protected final Profiler profiler;
+
     public VulkanRenderer(VulkanContext vulkanContext, GLFWContext glfwContext) {
         this.vulkanContext = vulkanContext;
         this.glfwContext = glfwContext;
         renderSteps = new ArrayList<>();
+        profiler = new Profiler("renderer");
+        swapChain = new VulkanSwapChain(vulkanContext, this);
     }
 
     public void addRenderStep(Consumer<VulkanRenderer> renderStep) {
@@ -73,7 +77,8 @@ public class VulkanRenderer {
     public static Consumer<VulkanRenderer> renderIndexedWithShader(Shader shader, VulkanBuffer vertexBuffer, VulkanBuffer indexBuffer) {
         return renderer -> {
             renderer.graphicsPipeline.setShader(shader);
-            renderer.graphicsPipeline.rebuildIfNeeded();
+            renderer.profiler.profile(renderer.graphicsPipeline::rebuildIfNeeded, "Rebuild Graphics Pipeline");
+            renderer.profiler.push("Add commands");
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 for (VkCommandBuffer commandBuffer : renderer.commandBuffers) {
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.graphicsPipeline.getPipeline());
@@ -82,20 +87,24 @@ public class VulkanRenderer {
                     vkCmdDrawIndexed(commandBuffer, indexBuffer.getSize(), 1, 0, 0, 0);
                 }
             }
+            renderer.profiler.pop();
         };
     }
 
     public void render() {
-        this.createRenderContext();
-        this.createPipeline();
-        this.computeRenderSteps();
-        this.submitRender();
-        this.cleanupPipeline();
-        this.cleanUpRenderContext();
+        profiler.push("render");
+        profiler.profile(this::createRenderContext, "Create render context");
+        profiler.profile(this::createPipeline, "Create pipeline");
+        profiler.profile(this::computeRenderSteps, "Compute render steps");
+        profiler.profile(this::submitRender, "Submit render");
+        profiler.profile(this::cleanupPipeline, "Cleanup pipeline");
+        profiler.profile(this::cleanUpRenderContext, "Cleanup context");
+        profiler.pop();
     }
 
     protected void submitRender() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
+            profiler.push("Acquire next image");
             IntBuffer imageIndex = stack.mallocInt(1);
             VulkanSemaphoreHandler.VulkanSemaphore currentSemaphore = vulkanContext.getSemaphoreHandler().getSemaphores().get(frame);
             int result = vkAcquireNextImageKHR(vulkanContext.getLogicalDevice().getDevice(), swapChain.getSwapChain(), UINT64_MAX, currentSemaphore.getImageAvailableSemaphore(), VK_NULL_HANDLE, imageIndex);
@@ -105,6 +114,7 @@ public class VulkanRenderer {
             } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
                 throw new RuntimeException("Unable to acquire swap chain image.");
             }
+            profiler.pop();
 
             if (vulkanContext.getSemaphoreHandler().getImagesInFlight().get(imageIndex.get(0)) != VK_NULL_HANDLE) {
                 vkWaitForFences(vulkanContext.getLogicalDevice().getDevice(), currentSemaphore.getInFlightFence(), true, UINT64_MAX);
@@ -113,6 +123,11 @@ public class VulkanRenderer {
 
 //            updateUniformBuffer(imageIndex.get(0));
 
+            profiler.push("Reset current fence before sumbit");
+            vkResetFences(vulkanContext.getLogicalDevice().getDevice(), currentSemaphore.getInFlightFence());
+            profiler.pop();
+
+            profiler.push("Submit queue");
             VkSubmitInfo submitInfo = VkSubmitInfo.callocStack(stack);
             submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
             submitInfo.waitSemaphoreCount(1);
@@ -123,11 +138,10 @@ public class VulkanRenderer {
             LongBuffer signal = stack.longs(currentSemaphore.getRenderFinishedSemaphore());
             submitInfo.pSignalSemaphores(signal);
 
-            vkResetFences(vulkanContext.getLogicalDevice().getDevice(), currentSemaphore.getInFlightFence());
-
             VulkanUtil.checkVulkanResult(vkQueueSubmit(vulkanContext.getLogicalDevice().getGraphicsQueue(), submitInfo, currentSemaphore.getInFlightFence()), "Failed to submit draw call to command buffer");
-//                vkResetFences(vulkanContext.getLogicalDevice().getDevice(), currentSemaphore.getInFlightFence());
+            profiler.pop();
 
+            profiler.push("Present rendered image");
             VkPresentInfoKHR presentInfo = VkPresentInfoKHR.callocStack(stack);
             presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
             presentInfo.pWaitSemaphores(signal);
@@ -144,8 +158,11 @@ public class VulkanRenderer {
             if (result != VK_SUCCESS && !(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized)) {
                 throw new RuntimeException("Unable to present swap chain image.");
             }
+            profiler.pop();
 
+            profiler.push("Wait for present queue to idle");
             vkQueueWaitIdle(vulkanContext.getLogicalDevice().getPresentQueue());
+            profiler.pop();
 
             frame = (frame + 1) % MAX_FRAMES_IN_FLIGHT;
         }
@@ -202,11 +219,15 @@ public class VulkanRenderer {
     }
 
     protected void computeRenderSteps() {
-        renderSteps.forEach(step -> step.accept(this));
+        profiler.push("Add render steps");
+        renderSteps.forEach(step -> profiler.profile(() -> step.accept(this), "Compute Render step " + step.toString()));
+        profiler.pop();
+        profiler.push("End Command Buffers");
         for (VkCommandBuffer buffer : commandBuffers) {
             vkCmdEndRenderPass(buffer);
             VulkanUtil.checkVulkanResult(vkEndCommandBuffer(buffer), "Failed to record command buffer.");
         }
+        profiler.pop();
     }
 
     protected void cleanupPipeline() {
@@ -216,13 +237,19 @@ public class VulkanRenderer {
     }
 
     protected void createRenderContext() {
-        swapChain = new VulkanSwapChain(vulkanContext, this);
         if(vulkanContext.getSemaphoreHandler().getImagesInFlight().isEmpty()) {
             vulkanContext.getSemaphoreHandler().createImagesInFlight(this);
         }
+
+        profiler.push("Create Image Views");
         imageViews = new VulkanImageViews(vulkanContext, this);
+        profiler.pop();
+        profiler.push("Create Render Pass ");
         renderPass = new VulkanRenderPass(vulkanContext, this);
+        profiler.pop();
+        profiler.push("Create Frame Buffers");
         frameBuffers = new VulkanFrameBuffers(vulkanContext, this);
+        profiler.pop();
     }
 
     protected void cleanUpRenderContext() {
@@ -230,7 +257,7 @@ public class VulkanRenderer {
         frameBuffers.close();
         renderPass.close();
         imageViews.close();
-        swapChain.close();
+//        swapChain.close();
     }
 
     public VulkanSwapChain getSwapChain() {
@@ -247,5 +274,9 @@ public class VulkanRenderer {
 
     public VulkanGraphicsPipeline getGraphicsPipeline() {
         return graphicsPipeline;
+    }
+
+    public Profiler getProfiler() {
+        return this.profiler;
     }
 }

@@ -145,6 +145,9 @@ public class VulkanGraphicsPipeline implements AutoCloseable {
     }
 
     public void setShader(Shader shader) {
+        if (this.shader == shader) {
+            return;
+        }
         this.shader = shader;
         changed = true;
     }

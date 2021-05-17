@@ -27,14 +27,17 @@ package com.oroarmor.vulkan;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
 import com.oroarmor.vulkan.render.*;
 import com.oroarmor.vulkan.render.BufferLayout.BufferElement.CommonBufferElement;
+import com.oroarmor.vulkan.util.Profiler;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.vulkan.VK10.*;
@@ -73,15 +76,29 @@ public class VulkanApplication implements AutoCloseable {
         });
 
         VulkanBuffer vertexBuffer = new VulkanBuffer(vulkanContext, Vertex.LAYOUT, Arrays.asList(VERTICES), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        VulkanBuffer vertexBuffer2 = new VulkanBuffer(vulkanContext, Vertex.LAYOUT, Arrays.stream(VERTICES).peek(vertex -> vertex.pos.mul(0.5f)).collect(Collectors.toList()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         VulkanBuffer indexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.INTEGER, false)), intToIndex(INDICES), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
         Shader shader = new Shader(vulkanContext, vulkanRenderer, "com/oroarmor/vulkan/vulkan_shader.glsl", new Vertex(null, null));
 
+        Profiler profiler = vulkanRenderer.getProfiler();
+        Consumer<VulkanRenderer> step1 = VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer, indexBuffer);
+        Consumer<VulkanRenderer> step2 = VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer2, indexBuffer);
+
+        profiler.push("Complete window loop");
         while (!glfwContext.shouldClose()) {
-            glfwPollEvents();
-            vulkanRenderer.addRenderStep(VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer, indexBuffer));
+            profiler.profile(GLFW::glfwPollEvents, "Poll Events");
+            profiler.push("Add hexagon to render steps");
+            vulkanRenderer.addRenderStep(step1);
+            vulkanRenderer.addRenderStep(step2);
+            profiler.pop();
             vulkanRenderer.render();
+            profiler.pop();
+            profiler.push("Complete window loop");
         }
+        profiler.pop();
+
+        System.out.println(profiler.dump());
 
         vertexBuffer.close();
         indexBuffer.close();
@@ -89,8 +106,7 @@ public class VulkanApplication implements AutoCloseable {
     }
 
     private static List<CopyableMemory> intToIndex(int[] arr) {
-        List<CopyableMemory> indices = Arrays.stream(arr).boxed().map(CopyableMemory.IndexBufferMemory::new).collect(Collectors.toList());
-        return indices;
+        return Arrays.stream(arr).boxed().map(CopyableMemory.IndexBufferMemory::new).collect(Collectors.toList());
     }
 
     @Override
