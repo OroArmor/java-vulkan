@@ -26,6 +26,7 @@ package com.oroarmor.vulkan.render;
 
 import java.nio.LongBuffer;
 
+import com.oroarmor.profiler.Profile;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -44,6 +45,7 @@ public class VulkanRenderPass implements AutoCloseable {
         renderPass = createRenderPass();
     }
 
+    @Profile
     protected long createRenderPass() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VkAttachmentDescription.Buffer colorAttachment = createColorAttachment(stack);

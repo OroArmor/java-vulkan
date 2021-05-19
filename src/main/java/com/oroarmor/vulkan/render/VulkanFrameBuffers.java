@@ -28,6 +28,7 @@ import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.oroarmor.profiler.Profile;
 import com.oroarmor.vulkan.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
@@ -46,6 +47,7 @@ public class VulkanFrameBuffers implements AutoCloseable {
         frameBuffers = createFrameBuffers();
     }
 
+    @Profile
     protected List<Long> createFrameBuffers() {
         List<Long> frameBuffers = new ArrayList<>(renderer.getImageViews().getSwapChainImageViews().size());
 

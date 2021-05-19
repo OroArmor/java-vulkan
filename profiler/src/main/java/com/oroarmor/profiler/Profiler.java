@@ -22,11 +22,13 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan.util;
+package com.oroarmor.profiler;
 
 import java.util.*;
 
 public class Profiler {
+    public static final Profiler PROFILER = new Profiler("root");
+
     private final Stack<Long> times;
     private final Stack<ProfilerStep> steps;
 

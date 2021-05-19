@@ -8,3 +8,6 @@
  */
 
 rootProject.name = 'java-vulkan'
+
+include 'profiler'
+
