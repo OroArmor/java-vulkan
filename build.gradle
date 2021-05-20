@@ -18,9 +18,6 @@ plugins {
     id "com.github.johnrengelman.shadow" version "7.0.0"
 }
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
-
 archivesBaseName = project.archives_base_name
 version = project.version
 group = project.maven_group
@@ -50,7 +47,6 @@ repositories {
 }
 
 dependencies {
-    shadow(implementation(project(":profiler")))
     shadow(api("org.lwjgl:lwjgl:$lwjglVersion"))
     shadow(api("org.lwjgl:lwjgl-glfw:$lwjglVersion"))
     shadow(api("org.lwjgl:lwjgl-shaderc:$lwjglVersion"))
@@ -65,8 +61,7 @@ dependencies {
 }
 
 run {
-    mainClass.set("com.oroarmor.vulkan.Main")
-    jvmArgs("-javaagent:${project.rootDir}/profiler/build/libs/${archivesBaseName}-profiler-${version}.jar")
+    mainClassName = "com.oroarmor.vulkan.Main"
 }
 
 ext.changelog = ""

@@ -28,7 +28,6 @@ import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.oroarmor.profiler.Profile;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkImageViewCreateInfo;
@@ -46,7 +45,6 @@ public class VulkanImageViews implements AutoCloseable {
         swapChainImageViews = createSwapChainImageViews();
     }
 
-    @Profile
     private List<Long> createSwapChainImageViews() {
         List<Long> swapChainImageViews = new ArrayList<>(renderer.getSwapChain().swapChainImages.size());
 

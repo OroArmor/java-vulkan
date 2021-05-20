@@ -30,12 +30,11 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.oroarmor.profiler.Profile;
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
 import com.oroarmor.vulkan.render.*;
 import com.oroarmor.vulkan.render.BufferLayout.BufferElement.CommonBufferElement;
-import com.oroarmor.profiler.Profiler;
+import com.oroarmor.vulkan.util.Profiler;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
@@ -82,21 +81,24 @@ public class VulkanApplication implements AutoCloseable {
 
         Shader shader = new Shader(vulkanContext, vulkanRenderer, "com/oroarmor/vulkan/vulkan_shader.glsl", new Shader.VertexInputDescriptor(Vertex.LAYOUT));
 
+        Profiler profiler = vulkanRenderer.getProfiler();
         Consumer<VulkanRenderer> step1 = VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer, indexBuffer);
         Consumer<VulkanRenderer> step2 = VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer2, indexBuffer);
 
-        Profiler.PROFILER.push("Complete window loop");
+        profiler.push("Complete window loop");
         while (!glfwContext.shouldClose()) {
-            Profiler.PROFILER.profile(GLFW::glfwPollEvents, "Poll Events");
+            profiler.profile(GLFW::glfwPollEvents, "Poll Events");
+            profiler.push("Add hexagon to render steps");
             vulkanRenderer.addRenderStep(step1);
             vulkanRenderer.addRenderStep(step2);
+            profiler.pop();
             vulkanRenderer.render();
-            Profiler.PROFILER.pop();
-            Profiler.PROFILER.push("Complete window loop");
+            profiler.pop();
+            profiler.push("Complete window loop");
         }
-        Profiler.PROFILER.pop();
+        profiler.pop();
 
-        System.out.println(Profiler.PROFILER.dump());
+        System.out.println(profiler.dump());
 
         vertexBuffer.close();
         indexBuffer.close();
