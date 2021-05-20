@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.oroarmor.vulkan;
+package com.oroarmor.vulkan.util;
 
 import java.util.Collection;
 

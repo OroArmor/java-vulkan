@@ -26,7 +26,7 @@ package com.oroarmor.vulkan.context;
 
 import java.nio.LongBuffer;
 
-import com.oroarmor.vulkan.VulkanUtil;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT;

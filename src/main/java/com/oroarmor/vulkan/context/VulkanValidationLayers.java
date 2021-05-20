@@ -28,7 +28,7 @@ import java.nio.IntBuffer;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.oroarmor.vulkan.VulkanUtil;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;

@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.oroarmor.profiler.Profile;
-import com.oroarmor.vulkan.VulkanUtil;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;

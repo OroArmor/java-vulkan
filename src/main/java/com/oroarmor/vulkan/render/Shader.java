@@ -24,26 +24,20 @@
 
 package com.oroarmor.vulkan.render;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.oroarmor.vulkan.VulkanUtil;
+import com.oroarmor.vulkan.util.Sizeof;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
 import org.lwjgl.vulkan.*;
 
-import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.lwjgl.util.shaderc.Shaderc.*;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -62,12 +56,12 @@ public class Shader implements AutoCloseable {
     protected final VulkanRenderer renderer;
 
     protected final String shaderFile;
-    protected final VertexInput inputTemplate;
+    protected final VertexInputDescriptor inputTemplate;
     protected final Map<Stage, String> stageToSource;
     protected final Map<Stage, SPIRV> stageToCompiled;
     protected final Map<Stage, Long> stageToModule;
 
-    public Shader(VulkanContext context, VulkanRenderer renderer, String shaderFile, VertexInput inputTemplate) {
+    public Shader(VulkanContext context, VulkanRenderer renderer, String shaderFile, VertexInputDescriptor inputTemplate) {
         this.context = context;
         this.renderer = renderer;
         this.shaderFile = shaderFile;
@@ -162,7 +156,7 @@ public class Shader implements AutoCloseable {
         return shaderStages;
     }
 
-    public VertexInput getVertexInput() {
+    public VertexInputDescriptor getVertexInput() {
         return inputTemplate;
     }
 
@@ -208,8 +202,14 @@ public class Shader implements AutoCloseable {
         }
     }
 
-    public interface VertexInput extends CopyableMemory {
-        default VkVertexInputBindingDescription.Buffer getBindingDescription() {
+    public static class VertexInputDescriptor implements Sizeof {
+        private final BufferLayout layout;
+
+        public VertexInputDescriptor(BufferLayout layout){
+            this.layout = layout;
+        }
+
+        public VkVertexInputBindingDescription.Buffer getBindingDescription() {
             VkVertexInputBindingDescription.Buffer bindingDescription = VkVertexInputBindingDescription.callocStack(1);
             bindingDescription.binding(0);
             bindingDescription.stride(this.sizeof());
@@ -217,7 +217,7 @@ public class Shader implements AutoCloseable {
             return bindingDescription;
         }
 
-        default VkVertexInputAttributeDescription.Buffer getAttributeDescriptions(){
+        public VkVertexInputAttributeDescription.Buffer getAttributeDescriptions(){
             List<BufferLayout.BufferElement> elements = getLayout().getBufferElements();
             VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.create(elements.size());
 
@@ -232,7 +232,13 @@ public class Shader implements AutoCloseable {
             return attributeDescriptions.rewind();
         }
 
-        BufferLayout getLayout();
+        public BufferLayout getLayout() {
+            return layout;
+        }
+
+        public int sizeof() {
+            return layout.getStride();
+        }
 
         private static int getFormat(int size) {
             return switch (size) {
@@ -242,7 +248,7 @@ public class Shader implements AutoCloseable {
             };
         }
 
-        default VkPipelineVertexInputStateCreateInfo createVertexInputState(MemoryStack stack) {
+        public VkPipelineVertexInputStateCreateInfo createVertexInputState(MemoryStack stack) {
             VkPipelineVertexInputStateCreateInfo vertexInputInfo = VkPipelineVertexInputStateCreateInfo.callocStack(stack);
             vertexInputInfo.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
             vertexInputInfo.pVertexBindingDescriptions(getBindingDescription());

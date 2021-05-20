@@ -80,7 +80,7 @@ public class VulkanApplication implements AutoCloseable {
         VulkanBuffer vertexBuffer2 = new VulkanBuffer(vulkanContext, Vertex.LAYOUT, Arrays.stream(VERTICES).peek(vertex -> vertex.pos.mul(0.5f)).collect(Collectors.toList()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         VulkanBuffer indexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.INTEGER, false)), intToIndex(INDICES), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-        Shader shader = new Shader(vulkanContext, vulkanRenderer, "com/oroarmor/vulkan/vulkan_shader.glsl", new Vertex(null, null));
+        Shader shader = new Shader(vulkanContext, vulkanRenderer, "com/oroarmor/vulkan/vulkan_shader.glsl", new Shader.VertexInputDescriptor(Vertex.LAYOUT));
 
         Consumer<VulkanRenderer> step1 = VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer, indexBuffer);
         Consumer<VulkanRenderer> step2 = VulkanRenderer.renderIndexedWithShader(shader, vertexBuffer2, indexBuffer);
@@ -91,6 +91,8 @@ public class VulkanApplication implements AutoCloseable {
             vulkanRenderer.addRenderStep(step1);
             vulkanRenderer.addRenderStep(step2);
             vulkanRenderer.render();
+            Profiler.PROFILER.pop();
+            Profiler.PROFILER.push("Complete window loop");
         }
         Profiler.PROFILER.pop();
 
@@ -111,10 +113,14 @@ public class VulkanApplication implements AutoCloseable {
         vulkanContext.close();
     }
 
-    public static class Vertex implements Shader.VertexInput {
+    public static class Vertex implements CopyableMemory {
         public static final int SIZEOF = (2 + 3) * Float.BYTES;
 
         public static BufferLayout LAYOUT = new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_2F, false)).push(new BufferLayout.BufferElement(1, CommonBufferElement.VECTOR_3F, false));
+
+        static {
+            assert LAYOUT.getStride() == SIZEOF : "Size does not match BufferLayout";
+        }
 
         public Vector2f pos;
         public Vector3f color;
@@ -137,11 +143,6 @@ public class VulkanApplication implements AutoCloseable {
         @Override
         public int sizeof() {
             return SIZEOF;
-        }
-
-        @Override
-        public BufferLayout getLayout() {
-            return LAYOUT;
         }
     }
 }

@@ -28,9 +28,7 @@ import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.List;
 
-import com.oroarmor.initial.VulkanLogicalDevices;
-import com.oroarmor.initial.VulkanVertexBuffers;
-import com.oroarmor.vulkan.VulkanUtil;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
