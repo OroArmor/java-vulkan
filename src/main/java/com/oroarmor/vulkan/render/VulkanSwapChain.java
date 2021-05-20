@@ -29,13 +29,16 @@ import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.oroarmor.vulkan.util.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.context.VulkanPhysicalDevice;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import org.joml.Math;
 import org.joml.Vector2i;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.vulkan.*;
+import org.lwjgl.vulkan.VkExtent2D;
+import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR;
+import org.lwjgl.vulkan.VkSurfaceFormatKHR;
+import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
@@ -78,7 +81,6 @@ public class VulkanSwapChain implements AutoCloseable {
 
     protected long createSwapChain() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-
             VulkanPhysicalDevice.SwapChainSupportDetails swapChainSupport = context.getPhysicalDevice().getSwapChainSupport();
 
             VkSurfaceFormatKHR surfaceFormat = swapSurfaceFormatCache;
@@ -181,8 +183,7 @@ public class VulkanSwapChain implements AutoCloseable {
     @Override
     public void close() {
         for (long imageView : swapChainImages) {
-            // TODO: broken for some reason, will investigate later
-            // vkDestroyImageView(context.getLogicalDevice().getDevice(), imageView, null);
+            vkDestroyImageView(context.getLogicalDevice().getDevice(), imageView, null);
         }
 
         vkDestroySwapchainKHR(context.getLogicalDevice().getDevice(), swapChain, null);

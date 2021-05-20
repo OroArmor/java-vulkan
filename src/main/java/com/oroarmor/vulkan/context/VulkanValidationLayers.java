@@ -67,7 +67,6 @@ public class VulkanValidationLayers {
             extensions.put(requiredGLFWExtensions);
             extensions.put(stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
 
-            // Rewind the buffer before returning it to reset its position back to 0
             return extensions.rewind();
         }
         return requiredGLFWExtensions;

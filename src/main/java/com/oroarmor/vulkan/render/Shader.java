@@ -30,9 +30,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.util.Sizeof;
 import com.oroarmor.vulkan.util.VulkanUtil;
-import com.oroarmor.vulkan.context.VulkanContext;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
@@ -205,7 +205,7 @@ public class Shader implements AutoCloseable {
     public static class VertexInputDescriptor implements Sizeof {
         private final BufferLayout layout;
 
-        public VertexInputDescriptor(BufferLayout layout){
+        public VertexInputDescriptor(BufferLayout layout) {
             this.layout = layout;
         }
 
@@ -217,15 +217,15 @@ public class Shader implements AutoCloseable {
             return bindingDescription;
         }
 
-        public VkVertexInputAttributeDescription.Buffer getAttributeDescriptions(){
+        public VkVertexInputAttributeDescription.Buffer getAttributeDescriptions() {
             List<BufferLayout.BufferElement> elements = getLayout().getBufferElements();
             VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.create(elements.size());
 
             int i = 0;
-            for(BufferLayout.BufferElement element : elements) {
+            for (BufferLayout.BufferElement element : elements) {
                 VkVertexInputAttributeDescription positionAttribute = attributeDescriptions.get(i);
                 positionAttribute.binding(0).location(i++);
-                positionAttribute.format(getFormat(element.size().getSize()));
+                positionAttribute.format(getFormat(element));
                 positionAttribute.offset(getLayout().getOffset(element));
             }
 
@@ -240,12 +240,21 @@ public class Shader implements AutoCloseable {
             return layout.getStride();
         }
 
-        private static int getFormat(int size) {
-            return switch (size) {
-                case (2 * Float.BYTES) -> VK_FORMAT_R32G32_SFLOAT;
-                case (3 * Float.BYTES) -> VK_FORMAT_R32G32B32_SFLOAT;
-                default -> VK_FORMAT_UNDEFINED;
-            };
+        private static int getFormat(BufferLayout.BufferElement element) {
+            if (element.size() instanceof BufferLayout.BufferElement.CommonBufferElement common) {
+                return switch (common) {
+                    case BYTE -> VK_FORMAT_R8_SINT;
+                    case CHARACTER -> VK_FORMAT_R8_UINT;
+                    case INTEGER -> VK_FORMAT_R32_SINT;
+                    case FLOAT -> VK_FORMAT_R32_SFLOAT;
+                    case VECTOR_2F -> VK_FORMAT_R32G32_SFLOAT;
+                    case VECTOR_3F -> VK_FORMAT_R32G32B32_SFLOAT;
+                    case VECTOR_4F -> VK_FORMAT_R32G32B32A32_SFLOAT;
+                    default -> throw new IllegalStateException("Unexpected value: " + common);
+                };
+            }
+
+            return -1;
         }
 
         public VkPipelineVertexInputStateCreateInfo createVertexInputState(MemoryStack stack) {

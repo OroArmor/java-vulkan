@@ -24,10 +24,11 @@
 
 package com.oroarmor.vulkan.render;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import com.oroarmor.vulkan.util.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkCommandBuffer;
@@ -52,7 +53,25 @@ public class VulkanCommandBuffer implements AutoCloseable {
     }
 
     public static List<VulkanCommandBuffer> createCommandBuffers(int count, VulkanContext context) {
-        return null;
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.callocStack(stack);
+            allocInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+            allocInfo.commandPool(context.getCommandPool().getCommandPool());
+            allocInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+            allocInfo.commandBufferCount(count);
+
+            PointerBuffer pCommandBuffer = stack.mallocPointer(count);
+
+            VulkanUtil.checkVulkanResult(vkAllocateCommandBuffers(context.getLogicalDevice().getDevice(), allocInfo, pCommandBuffer), "Unable to allocate command buffers");
+
+            List<VulkanCommandBuffer> commandBuffers = new ArrayList<>(count);
+
+            for (int i = 0; i < count; i++) {
+                VkCommandBuffer vkCommandBuffer = new VkCommandBuffer(pCommandBuffer.get(i), context.getLogicalDevice().getDevice());
+                commandBuffers.add(new VulkanCommandBuffer(context, vkCommandBuffer));
+            }
+            return commandBuffers;
+        }
     }
 
     private VkCommandBuffer createCommandBuffer() {
@@ -65,7 +84,7 @@ public class VulkanCommandBuffer implements AutoCloseable {
 
             PointerBuffer pCommandBuffer = stack.mallocPointer(1);
 
-            VulkanUtil.checkVulkanResult(vkAllocateCommandBuffers(context.getLogicalDevice().getDevice(), allocInfo, pCommandBuffer), "Unable to allocate command buffers.");
+            VulkanUtil.checkVulkanResult(vkAllocateCommandBuffers(context.getLogicalDevice().getDevice(), allocInfo, pCommandBuffer), "Unable to allocate command buffers");
             return new VkCommandBuffer(pCommandBuffer.get(0), context.getLogicalDevice().getDevice());
         }
     }
@@ -91,5 +110,9 @@ public class VulkanCommandBuffer implements AutoCloseable {
 
     public void close() {
         vkFreeCommandBuffers(context.getLogicalDevice().getDevice(), context.getCommandPool().getCommandPool(), commandBuffer);
+    }
+
+    public VkCommandBuffer getCommandBuffer() {
+        return commandBuffer;
     }
 }

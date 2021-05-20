@@ -55,7 +55,7 @@ public class VulkanRenderer {
     protected VulkanFrameBuffers frameBuffers;
 
     protected VulkanGraphicsPipeline graphicsPipeline;
-    protected List<VkCommandBuffer> commandBuffers;
+    protected List<VulkanCommandBuffer> commandBuffers;
 
     protected final List<Consumer<VulkanRenderer>> renderSteps;
     private boolean frameBufferResized = false;
@@ -81,11 +81,11 @@ public class VulkanRenderer {
             renderer.profiler.profile(renderer.graphicsPipeline::rebuildIfNeeded, "Rebuild Graphics Pipeline");
             renderer.profiler.push("Add commands");
             try (MemoryStack stack = MemoryStack.stackPush()) {
-                for (VkCommandBuffer commandBuffer : renderer.commandBuffers) {
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.graphicsPipeline.getPipeline());
-                    vkCmdBindVertexBuffers(commandBuffer, 0, stack.longs(vertexBuffer.getBufferData().bufferHandle()), stack.longs(0));
-                    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBufferData().bufferHandle(), 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdDrawIndexed(commandBuffer, indexBuffer.getSize(), 1, 0, 0, 0);
+                for (VulkanCommandBuffer commandBuffer : renderer.commandBuffers) {
+                    vkCmdBindPipeline(commandBuffer.getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.graphicsPipeline.getPipeline());
+                    vkCmdBindVertexBuffers(commandBuffer.getCommandBuffer(), 0, stack.longs(vertexBuffer.getBufferData().bufferHandle()), stack.longs(0));
+                    vkCmdBindIndexBuffer(commandBuffer.getCommandBuffer(), indexBuffer.getBufferData().bufferHandle(), 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdDrawIndexed(commandBuffer.getCommandBuffer(), indexBuffer.getSize(), 1, 0, 0, 0);
                 }
             }
             renderer.profiler.pop();
@@ -124,7 +124,7 @@ public class VulkanRenderer {
 
 //            updateUniformBuffer(imageIndex.get(0));
 
-            profiler.push("Reset current fence before sumbit");
+            profiler.push("Reset current fence before submit");
             vkResetFences(vulkanContext.getLogicalDevice().getDevice(), currentSemaphore.getInFlightFence());
             profiler.pop();
 
@@ -134,7 +134,7 @@ public class VulkanRenderer {
             submitInfo.waitSemaphoreCount(1);
             submitInfo.pWaitSemaphores(stack.longs(currentSemaphore.getImageAvailableSemaphore()));
             submitInfo.pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT));
-            submitInfo.pCommandBuffers(stack.pointers(commandBuffers.get(imageIndex.get(0))));
+            submitInfo.pCommandBuffers(stack.pointers(commandBuffers.get(imageIndex.get(0)).getCommandBuffer()));
 
             LongBuffer signal = stack.longs(currentSemaphore.getRenderFinishedSemaphore());
             submitInfo.pSignalSemaphores(signal);
@@ -174,30 +174,12 @@ public class VulkanRenderer {
         commandBuffers = createCommandBuffers();
     }
 
-    protected List<VkCommandBuffer> createCommandBuffers() {
+    protected List<VulkanCommandBuffer> createCommandBuffers() {
         int commandBuffersCount = frameBuffers.getFrameBuffers().size();
-        List<VkCommandBuffer> commandBuffers = new ArrayList<>(commandBuffersCount);
+
+        List<VulkanCommandBuffer> commandBuffers = VulkanCommandBuffer.createCommandBuffers(commandBuffersCount, vulkanContext);
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.callocStack(stack);
-            allocInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
-            allocInfo.commandPool(vulkanContext.getCommandPool().getCommandPool());
-            allocInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-            allocInfo.commandBufferCount(commandBuffersCount);
-
-            PointerBuffer pCommandPools = stack.mallocPointer(commandBuffersCount);
-
-            VulkanUtil.checkVulkanResult(vkAllocateCommandBuffers(vulkanContext.getLogicalDevice().getDevice(), allocInfo, pCommandPools), "Unable to allocate command buffers.");
-
-            for (int i = 0; i < commandBuffersCount; i++) {
-                commandBuffers.add(new VkCommandBuffer(pCommandPools.get(i), vulkanContext.getLogicalDevice().getDevice()));
-            }
-
-            VkCommandBufferBeginInfo beginInfo = VkCommandBufferBeginInfo.callocStack(stack);
-            beginInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-            beginInfo.flags(0); // Optional
-            beginInfo.pInheritanceInfo(null); // Optional
-
             VkRenderPassBeginInfo renderPassInfo = VkRenderPassBeginInfo.callocStack(stack);
             renderPassInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
             renderPassInfo.renderPass(renderPass.getRenderPass());
@@ -208,9 +190,9 @@ public class VulkanRenderer {
             renderPassInfo.pClearValues(clearValue);
 
             for (int i = 0; i < commandBuffers.size(); i++) {
-                VkCommandBuffer commandBuffer = commandBuffers.get(i);
+                VkCommandBuffer commandBuffer = commandBuffers.get(i).getCommandBuffer();
+                commandBuffers.get(i).startRecording(0);
 
-                VulkanUtil.checkVulkanResult(vkBeginCommandBuffer(commandBuffer, beginInfo), "Failed to begin recording command buffer!");
                 renderPassInfo.framebuffer(frameBuffers.getFrameBuffers().get(i));
                 vkCmdBeginRenderPass(commandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
             }
@@ -224,15 +206,15 @@ public class VulkanRenderer {
         renderSteps.forEach(step -> profiler.profile(() -> step.accept(this), "Compute Render step " + step.toString()));
         profiler.pop();
         profiler.push("End Command Buffers");
-        for (VkCommandBuffer buffer : commandBuffers) {
-            vkCmdEndRenderPass(buffer);
-            VulkanUtil.checkVulkanResult(vkEndCommandBuffer(buffer), "Failed to record command buffer.");
+        for (VulkanCommandBuffer buffer : commandBuffers) {
+            vkCmdEndRenderPass(buffer.getCommandBuffer());
+            buffer.finishRecording();
         }
         profiler.pop();
     }
 
     protected void cleanupPipeline() {
-        commandBuffers.forEach(vkCommandBuffer -> vkFreeCommandBuffers(vulkanContext.getLogicalDevice().getDevice(), vulkanContext.getCommandPool().getCommandPool(), vkCommandBuffer));
+        commandBuffers.forEach(VulkanCommandBuffer::close);
         commandBuffers.clear();
         graphicsPipeline.close();
     }

@@ -40,7 +40,6 @@ public class VulkanContext implements AutoCloseable {
     protected final VulkanCommandPool commandPool;
     protected final VulkanValidationLayers validationLayers;
     protected final VulkanSemaphoreHandler semaphoreHandler;
-    private VulkanRenderer renderer;
 
     public VulkanContext(GLFWContext glfwContext) {
         this.glfwContext = glfwContext;
@@ -99,13 +98,5 @@ public class VulkanContext implements AutoCloseable {
 
     public VulkanSemaphoreHandler getSemaphoreHandler() {
         return semaphoreHandler;
-    }
-
-    public void setRenderer(VulkanRenderer renderer) {
-        this.renderer = renderer;
-    }
-
-    public VulkanRenderer getAvailableRenderer() {
-        return renderer;
     }
 }

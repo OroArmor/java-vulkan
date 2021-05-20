@@ -54,10 +54,6 @@ public class BufferLayout {
     }
 
     public record BufferElement(int count, Size size, boolean normalized) {
-        public static int getSize(Size type) {
-            return type.getSize();
-        }
-
         public interface Size {
             int getSize();
         }

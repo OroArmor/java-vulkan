@@ -27,6 +27,7 @@ package com.oroarmor.vulkan.render;
 import java.nio.LongBuffer;
 
 import com.oroarmor.vulkan.context.VulkanContext;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 
@@ -61,9 +62,7 @@ public class VulkanRenderPass implements AutoCloseable {
 
             LongBuffer pRenderPass = stack.mallocLong(1);
 
-            if (vkCreateRenderPass(context.getLogicalDevice().getDevice(), renderPassInfo, null, pRenderPass) != VK_SUCCESS) {
-                throw new RuntimeException("failed to create render pass!");
-            }
+            VulkanUtil.checkVulkanResult(vkCreateRenderPass(context.getLogicalDevice().getDevice(), renderPassInfo, null, pRenderPass), "Failed to create render pass!");
 
             return pRenderPass.get(0);
         }

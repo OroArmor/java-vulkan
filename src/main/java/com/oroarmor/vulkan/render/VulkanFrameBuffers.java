@@ -73,6 +73,7 @@ public class VulkanFrameBuffers implements AutoCloseable {
         return frameBuffers;
     }
 
+    @Override
     public void close() {
         frameBuffers.forEach(framebuffer -> vkDestroyFramebuffer(context.getLogicalDevice().getDevice(), framebuffer, null));
     }

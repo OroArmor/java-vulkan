@@ -141,10 +141,5 @@ public class VulkanApplication implements AutoCloseable {
             buffer.putFloat(color.y());
             buffer.putFloat(color.z());
         }
-
-        @Override
-        public int sizeof() {
-            return SIZEOF;
-        }
     }
 }

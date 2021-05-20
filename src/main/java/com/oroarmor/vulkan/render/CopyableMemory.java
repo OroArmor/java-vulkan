@@ -29,8 +29,6 @@ import java.nio.ByteBuffer;
 public interface CopyableMemory {
     void memCopy(ByteBuffer buffer);
 
-    int sizeof();
-
     class IndexBufferMemory implements CopyableMemory {
         private final int value;
 
@@ -41,15 +39,6 @@ public interface CopyableMemory {
         @Override
         public void memCopy(ByteBuffer buffer) {
             buffer.putInt(value);
-        }
-
-        @Override
-        public int sizeof() {
-            return Integer.BYTES;
-        }
-
-        public String toString() {
-            return Integer.toString(value);
         }
     }
 }

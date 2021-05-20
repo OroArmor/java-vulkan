@@ -59,10 +59,7 @@ public class VulkanSemaphoreHandler implements AutoCloseable {
 
     protected List<VulkanSemaphore> createSemaphore() {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            List<VulkanSemaphore.Builder> builders = new ArrayList<>(MAX_FRAMES_IN_FLIGHT);
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                builders.add(new VulkanSemaphore.Builder(context));
-            }
+            List<VulkanSemaphore> semaphores = new ArrayList<>(MAX_FRAMES_IN_FLIGHT);
 
             VkSemaphoreCreateInfo semaphoreInfo = VkSemaphoreCreateInfo.callocStack(stack);
             semaphoreInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
@@ -80,10 +77,14 @@ public class VulkanSemaphoreHandler implements AutoCloseable {
                 VulkanUtil.checkVulkanResult(vkCreateSemaphore(context.getLogicalDevice().getDevice(), semaphoreInfo, null, pRenderFinishedSemaphore), "Failed to create render finished semaphore " + i);
                 VulkanUtil.checkVulkanResult(vkCreateFence(context.getLogicalDevice().getDevice(), fenceInfo, null, pFence), "Failed to create in flight fence " + i);
 
-                builders.get(i).imageAvailableSemaphore(pImageAvailableSemaphore.get(0)).renderFinishedSemaphore(pRenderFinishedSemaphore.get(0)).inFlightFence(pFence.get(0));
+                semaphores.add(new VulkanSemaphore.Builder(context)
+                        .imageAvailableSemaphore(pImageAvailableSemaphore.get(0))
+                        .renderFinishedSemaphore(pRenderFinishedSemaphore.get(0))
+                        .inFlightFence(pFence.get(0))
+                        .build());
             }
 
-            return builders.stream().map(VulkanSemaphore.Builder::build).collect(Collectors.toList());
+            return semaphores;
         }
     }
 
@@ -125,9 +126,9 @@ public class VulkanSemaphoreHandler implements AutoCloseable {
             return renderFinishedSemaphore;
         }
 
-        public static class Builder {
+        private static class Builder {
             private long imageAvailableSemaphore, renderFinishedSemaphore, inFlightFence;
-            private VulkanContext context;
+            private final VulkanContext context;
 
             public Builder(VulkanContext context) {
                 this.context = context;
