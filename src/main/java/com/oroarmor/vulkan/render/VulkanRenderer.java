@@ -28,20 +28,18 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import com.oroarmor.vulkan.util.VulkanUtil;
 import com.oroarmor.vulkan.context.VulkanContext;
 import com.oroarmor.vulkan.glfw.GLFWContext;
 import com.oroarmor.vulkan.render.pipeline.VulkanGraphicsPipeline;
 import com.oroarmor.vulkan.util.Profiler;
-import org.lwjgl.PointerBuffer;
+import com.oroarmor.vulkan.util.VulkanUtil;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 
-import static com.oroarmor.vulkan.util.VulkanUtil.UINT64_MAX;
 import static com.oroarmor.vulkan.render.VulkanSemaphoreHandler.MAX_FRAMES_IN_FLIGHT;
+import static com.oroarmor.vulkan.util.VulkanUtil.UINT64_MAX;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -69,6 +67,7 @@ public class VulkanRenderer {
         renderSteps = new ArrayList<>();
         profiler = new Profiler("renderer");
         swapChain = new VulkanSwapChain(vulkanContext, this);
+        glfwContext.addFramebufferSizeCallback((window, width, height) -> frameBufferResized = true);
     }
 
     public void addRenderStep(Consumer<VulkanRenderer> renderStep) {
@@ -111,6 +110,7 @@ public class VulkanRenderer {
             int result = vkAcquireNextImageKHR(vulkanContext.getLogicalDevice().getDevice(), swapChain.getSwapChain(), UINT64_MAX, currentSemaphore.getImageAvailableSemaphore(), VK_NULL_HANDLE, imageIndex);
 
             if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+                recreateSwapChainOnFrameBufferResize();
                 return;
             } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
                 throw new RuntimeException("Unable to acquire swap chain image.");
@@ -156,10 +156,13 @@ public class VulkanRenderer {
 
             result = vkQueuePresentKHR(vulkanContext.getLogicalDevice().getPresentQueue(), presentInfo);
 
-            if (result != VK_SUCCESS && !(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized)) {
-                throw new RuntimeException("Unable to present swap chain image.");
+            if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
+                profiler.pop();
+                recreateSwapChainOnFrameBufferResize();
+            } else {
+                VulkanUtil.checkVulkanResult(result, "Unable to present swap chain image");
+                profiler.pop();
             }
-            profiler.pop();
 
             profiler.push("Wait for present queue to idle");
             vkQueueWaitIdle(vulkanContext.getLogicalDevice().getPresentQueue());
@@ -167,6 +170,12 @@ public class VulkanRenderer {
 
             frame = (frame + 1) % MAX_FRAMES_IN_FLIGHT;
         }
+    }
+
+    private void recreateSwapChainOnFrameBufferResize() {
+        swapChain.close();
+        swapChain = new VulkanSwapChain(vulkanContext, this);
+        frameBufferResized = false;
     }
 
     protected void createPipeline() {
@@ -240,7 +249,6 @@ public class VulkanRenderer {
         frameBuffers.close();
         renderPass.close();
         imageViews.close();
-//        swapChain.close();
     }
 
     public VulkanSwapChain getSwapChain() {

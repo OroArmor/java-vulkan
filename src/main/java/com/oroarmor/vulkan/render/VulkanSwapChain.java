@@ -152,7 +152,7 @@ public class VulkanSwapChain implements AutoCloseable {
     }
 
     protected VkExtent2D chooseSwapExtent() {
-        VkSurfaceCapabilitiesKHR capabilities = context.getPhysicalDevice().getSwapChainSupport().capabilities;
+        VkSurfaceCapabilitiesKHR capabilities = context.getPhysicalDevice().getNewSwapChainSupport().capabilities;
         if (capabilities.currentExtent().width() != VulkanUtil.UINT32_MAX) {
             return capabilities.currentExtent();
         }
@@ -183,7 +183,8 @@ public class VulkanSwapChain implements AutoCloseable {
     @Override
     public void close() {
         for (long imageView : swapChainImages) {
-            vkDestroyImageView(context.getLogicalDevice().getDevice(), imageView, null);
+            // TODO: Still broken, thought was fixed because never called this method
+            // vkDestroyImageView(context.getLogicalDevice().getDevice(), imageView, null);
         }
 
         vkDestroySwapchainKHR(context.getLogicalDevice().getDevice(), swapChain, null);

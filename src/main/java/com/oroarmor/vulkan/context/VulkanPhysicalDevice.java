@@ -183,6 +183,11 @@ public class VulkanPhysicalDevice {
         return swapChainSupport;
     }
 
+    public SwapChainSupportDetails getNewSwapChainSupport() {
+        this.swapChainSupport = null;
+        return getSwapChainSupport(this.physicalDevice);
+    }
+
     public static class SwapChainSupportDetails {
         public VkSurfaceCapabilitiesKHR capabilities;
         public VkSurfaceFormatKHR.Buffer formats;

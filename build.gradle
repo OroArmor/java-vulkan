@@ -99,7 +99,7 @@ jar {
     }
 
     manifest {
-        attributes "Main-Class": (tasks.getByName("run") as JavaExec).getMain()
+        getAttributes()["Main-Class"] = (tasks.getByName("run") as JavaExec).getMain()
     }
 }
 
@@ -114,7 +114,7 @@ publishing {
                 name = 'Vulkan Java'
                 packaging = 'jar'
                 // optionally artifactId can be defined here
-                description = 'A Library for LWJGL programs'
+                description = 'A Library for Vulkan and Java'
                 url = 'http://github.com/OroArmor/java-vulkan'
 
                 scm {
@@ -141,6 +141,7 @@ publishing {
             }
         }
     }
+
     repositories {
         def ossrhUsername = "OroArmor"
         def ossrhPassword = (project.hasProperty("ossrhPassword") ? project.property("ossrhPassword") : System.getenv("OSSRH_PASSWORD")) as String
@@ -169,22 +170,26 @@ if (project.hasProperty("sign")) {
     }
 }
 
+import org.kohsuke.github.GHReleaseBuilder
+import org.kohsuke.github.GHRepository
+import org.kohsuke.github.GitHub
+
 task github {
     onlyIf {
         System.getenv().GITHUB_TOKEN
     }
 
     doLast {
-        def github = org.kohsuke.github.GitHub.connectUsingOAuth(System.getenv().GITHUB_TOKEN as String)
+        def github = GitHub.connectUsingOAuth(System.getenv().GITHUB_TOKEN as String)
         def repository = github.getRepository("OroArmor/java-vulkan")
 
-        def releaseBuilder = new org.kohsuke.github.GHReleaseBuilder(repository, project.mod_version)
+        def releaseBuilder = new GHReleaseBuilder(repository as GHRepository, project.mod_version as String)
         releaseBuilder.name("$project.project_name $project.mod_version for $project.minecraft_version")
-        releaseBuilder.body(project.ext.changelog)
+        releaseBuilder.body(project.ext.changelog as String)
         releaseBuilder.commitish("master")
 
         def ghRelease = releaseBuilder.create()
-        ghRelease.uploadAsset(file("${project.rootDir}/build/libs/${archivesBaseName}-${version}.jar"), "application/java-archive");
+        ghRelease.uploadAsset(file("${project.rootDir}/build/libs/${archivesBaseName}-${version}.jar"), "application/java-archive")
     }
 }
 

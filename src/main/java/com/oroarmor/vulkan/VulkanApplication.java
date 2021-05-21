@@ -76,7 +76,7 @@ public class VulkanApplication implements AutoCloseable {
         });
 
         VulkanBuffer vertexBuffer = new VulkanBuffer(vulkanContext, Vertex.LAYOUT, Arrays.asList(VERTICES), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        VulkanBuffer vertexBuffer2 = new VulkanBuffer(vulkanContext, Vertex.LAYOUT, Arrays.stream(VERTICES).peek(vertex -> vertex.pos.mul(0.5f)).collect(Collectors.toList()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        VulkanBuffer vertexBuffer2 = new VulkanBuffer(vulkanContext, Vertex.LAYOUT, Arrays.stream(VERTICES).peek(vertex -> vertex.pos.mul(-0.5f)).collect(Collectors.toList()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         VulkanBuffer indexBuffer = new VulkanBuffer(vulkanContext, new BufferLayout().push(new BufferLayout.BufferElement(1, CommonBufferElement.INTEGER, false)), intToIndex(INDICES), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
         Shader shader = new Shader(vulkanContext, vulkanRenderer, "com/oroarmor/vulkan/vulkan_shader.glsl", new Shader.VertexInputDescriptor(Vertex.LAYOUT));
